@@ -39,17 +39,22 @@ one leg never re-uploads the other.
 | API | FastAPI | typed, async, self-documenting |
 | State | Postgres | job history, resume offsets, rotating tokens |
 | Media | ffmpeg | per-platform renditions (9:16 vertical, 16:9 feed) |
-| Orchestration | n8n | triggers, scheduling, approvals, notifications |
+| Orchestration | n8n | triggers, approvals, notifications, the schedule heartbeat |
 
-n8n handles *when* to post. This service handles *how*. See
+n8n supplies the heartbeat and the notifications; the posting slots and the
+release order live in this service, editable from the console. See
 [docs/N8N_INTEGRATION.md](docs/N8N_INTEGRATION.md).
 
 ## Console
 
 A React operator console ships with the stack at <http://localhost:8080>: drop
 a video, tick the platforms, write one caption per platform, then publish now
-or add it to the daily backlog. It watches each job independently and can
+or add it to the scheduled backlog. It watches each job independently and can
 retry a single failed platform.
+
+The Series view handles a serialised show: drop `part1_….mp4`, `part2_….mp4`,
+write one caption template for the whole series, and it goes out one episode
+per slot in episode order. See [docs/SERIES.md](docs/SERIES.md).
 
 It is a static bundle that talks to the API from the browser — see
 [console/README.md](console/README.md) for its layout and configuration.
@@ -83,7 +88,7 @@ What does **not** work: serverless platforms (Vercel, Netlify Functions,
 Cloudflare Workers) for the API or the workers. The workers are long-running
 processes that shell out to ffmpeg and hold Redis connections, which is the
 opposite of a request-scoped function. Free tiers that sleep idle containers
-(Render's free web services, for instance) also break the daily cron and the
+(Render's free web services, for instance) also break the schedule tick and the
 polling of in-flight jobs.
 
 Managed alternatives, if you would rather not run a box: Fly.io or Railway for
@@ -99,6 +104,7 @@ convenience, not capability.
 | [Implementation Plan](docs/IMPLEMENTATION_PLAN.md) | what is built, what is left, what is blocked |
 | [Architecture](docs/ARCHITECTURE.md) | the design and the reasoning behind it |
 | [Platform Notes](docs/PLATFORM_NOTES.md) | every TikTok/Facebook API assumption, with a verification checklist |
+| [Series](docs/SERIES.md) | serialised uploads: episode ordering, caption templates, the hook generator, and the posting slots |
 | [Development Guide](docs/DEVELOPMENT.md) | setup, endpoints, end-to-end example, layout |
 | [n8n Integration](docs/N8N_INTEGRATION.md) | wiring the workflow |
 | [Console](console/README.md) | the operator UI: layout, configuration, deploying |

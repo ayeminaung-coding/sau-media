@@ -54,12 +54,11 @@ a:hover {
 }
 
 .app__main {
-  width: 100%;
-  max-width: 1120px;
-  margin: 0 auto;
+  min-width: 0;
   padding: var(--space-6) var(--space-5) var(--space-7);
   display: grid;
   gap: var(--space-5);
+  align-content: start;
 }
 
 .stack {

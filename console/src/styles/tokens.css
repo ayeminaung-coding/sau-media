@@ -12,6 +12,9 @@
   --space-6: 32px;
   --space-7: 48px;
 
+  /* The header, the sidebar rail and the view all align to this width. */
+  --shell-max: 1320px;
+
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;

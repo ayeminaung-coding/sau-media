@@ -120,10 +120,16 @@ sau/
   http.py          shared httpx client + jittered backoff
   storage.py       R2: presigned URLs, ranged reads, chunk iteration
   transcode.py     ffprobe/ffmpeg, per-platform specs
-  models.py        assets, renditions, publish_jobs, oauth_tokens
+  models.py        assets, renditions, publish_jobs, series, slots, oauth_tokens
   db.py            engine + transactional session scope
   tokens.py        credential storage with race-safe refresh
   renditions.py    transcode-and-cache
+  series.py        episode numbers out of filenames — pure
+  schedule.py      slot due-times and backlog release order — pure
+  captions/
+    template.py    renders the published caption — pure, on the publish path
+    generate.py    drafts every episode's hook in one call — upstream
+    providers.py   Gemini + OpenRouter, tried in order
   api/             FastAPI surface
   queue/           per-platform queues and worker tasks
   platforms/
@@ -132,12 +138,12 @@ sau/
     tiktok/        client.py (transport) + publisher.py (flow)
 console/           React operator console (see console/README.md)
   src/api/         wire types + the only place a fetch is issued
-  src/domain/      platform rules, job lifecycle, slot maths — pure
-  src/hooks/       state: composer, publish flow, polling, backlog
+  src/domain/      platform rules, job lifecycle, series naming — pure
+  src/hooks/       state: composer, publish flow, polling, backlog, series
   src/components/  generic UI kit
   src/features/    one folder per panel, composed by App.tsx
 docs/              this documentation
-n8n/               importable workflows (daily backlog release)
+n8n/               importable workflows (slot tick)
 scripts/           init_db, init_r2_cors, worker, seed_tokens
 tests/
 ```

@@ -39,11 +39,27 @@ and the code encodes them deliberately.
    refreshes under `SELECT ... FOR UPDATE`. Removing that lock will
    intermittently invalidate the account's credentials.
 
+7. **Series parts are ordered by `part_index`, never by time.** The backlog
+   order comes from `sau.schedule.order_groups`, and both the console preview
+   and the tick that releases go through it. A batch upload timestamps eight
+   parts milliseconds apart; sorting those by `created_at` publishes an episode
+   before the one it follows.
+
+8. **Caption generation never blocks publishing.** It is an operator-triggered
+   endpoint that writes `SeriesPart.hook`. With every provider unreachable the
+   templates still render. Do not call a model from a worker or a publish path.
+
 ## Layout
 
 `client.py` = transport (HTTP, headers, error envelopes).
 `publisher.py` = flow (the publish sequence).
 Keep that separation; tests target the client boundary.
+
+`sau/captions/` splits the same way and for the same reason: `template.py`
+renders the published text and is pure, offline, and on the publish path;
+`generate.py` and `providers.py` draft the one line per episode that varies,
+are upstream of publishing, and are allowed to fail. Never make the publish
+path depend on a generator. [docs/SERIES.md](docs/SERIES.md) has the rules.
 
 The console is a React/TypeScript app under `console/`, layered
 `api → domain → hooks → features`; its rules are in
@@ -87,3 +103,10 @@ published documentation but have **not been executed against the live APIs** in
 this repository. The verification checklist at the end of
 [docs/PLATFORM_NOTES.md](docs/PLATFORM_NOTES.md) lists exactly what to confirm.
 If a publish fails with a field-name or parameter error, check there first.
+
+The same applies to the caption generators. The Gemini and OpenRouter request
+and response shapes were written against their published documentation and
+**have not been executed against either live API** in this repository; the
+tests cover the envelopes and the fallback with mocked transports. The publish
+path does not depend on them, so a wrong shape here degrades to "no hook
+drafted", not to a failed post.

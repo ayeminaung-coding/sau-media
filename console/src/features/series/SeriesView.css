@@ -1,0 +1,91 @@
+.sview__pick {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.sview__select {
+  max-width: 22ch;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--surface-sunken);
+  color: var(--ink);
+  font: inherit;
+  font-size: var(--text-md);
+}
+
+.sview__body {
+  display: grid;
+  gap: var(--space-4);
+  margin-top: var(--space-4);
+}
+
+.sview__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+
+.sview__hint {
+  flex: 1 1 32ch;
+  font-size: var(--text-md);
+}
+
+.sview__buttons {
+  display: flex;
+  gap: var(--space-2);
+  justify-content: flex-end;
+}
+
+.sview__check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  font-size: var(--text-md);
+  color: var(--ink-muted);
+}
+
+.sview__check input {
+  margin-top: 2px;
+  accent-color: var(--accent);
+}
+
+.sview__error,
+.sview__notice {
+  margin-bottom: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-md);
+}
+
+.sview__error {
+  background: color-mix(in srgb, var(--err) 12%, transparent);
+  color: var(--err);
+}
+
+.sview__notice {
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+  color: var(--ok);
+  /* Fades out on its own; the animation end is what clears the message, so a
+     notice never lingers into the next thing the operator does. */
+  animation: sview-fade 6s forwards;
+}
+
+@keyframes sview-fade {
+  0%,
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sview__notice {
+    animation-duration: 6s;
+    animation-timing-function: step-end;
+  }
+}

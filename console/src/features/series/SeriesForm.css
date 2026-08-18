@@ -1,0 +1,57 @@
+.sform {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.sform__grid {
+  display: grid;
+  gap: var(--space-4);
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.sform__fieldset {
+  display: grid;
+  gap: var(--space-3);
+  padding: var(--space-4);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+.sform__legend {
+  padding: 0 var(--space-2);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.sform__note {
+  font-size: var(--text-sm);
+}
+
+.sform__help summary {
+  cursor: pointer;
+  font-size: var(--text-md);
+  color: var(--ink-muted);
+}
+
+.sform__fields {
+  display: grid;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+
+.sform__field {
+  display: flex;
+  gap: var(--space-3);
+  font-size: var(--text-md);
+}
+
+.sform__field dt {
+  flex: 0 0 14ch;
+  color: var(--accent);
+}
+
+.sform__actions {
+  display: flex;
+  justify-content: flex-end;
+}

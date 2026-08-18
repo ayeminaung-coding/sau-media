@@ -8,7 +8,6 @@ presigned URL — it never passes through this process. That is what keeps a
 from __future__ import annotations
 
 import uuid
-from collections.abc import Iterator
 from pathlib import PurePosixPath
 
 from fastapi import APIRouter, BackgroundTasks, Depends, FastAPI, HTTPException, status
@@ -17,6 +16,8 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from sau import __version__, storage
+from sau.api import scheduling, series
+from sau.api.deps import get_session, register_asset_row
 from sau.api.schemas import (
     AssetResponse,
     BacklogEntry,
@@ -28,21 +29,16 @@ from sau.api.schemas import (
     UploadUrlResponse,
 )
 from sau.config import get_settings
-from sau.db import session_scope
 from sau.logging import configure_logging, get_logger
 from sau.models import Asset, JobState, PublishJob
 from sau.queue.tasks import dispatch
+from sau.schedule import ordered_backlog
 
 log = get_logger(__name__)
 
 UPLOAD_URL_TTL_SECONDS = 3600
 
 router = APIRouter()
-
-
-def get_session() -> Iterator[Session]:  # pragma: no cover - dependency plumbing
-    with session_scope() as session:
-        yield session
 
 
 def _load_job(session: Session, job_id: str) -> PublishJob:
@@ -83,17 +79,8 @@ def register_asset(body: RegisterAssetRequest, session: Session = Depends(get_se
     Only the size is read here; duration and dimensions are filled in by the
     first transcode, which already has the file on local disk.
     """
-    try:
-        size_bytes = storage.size_of(body.storage_key)
-    except Exception as exc:  # any storage failure is a bad key from the caller
-        raise HTTPException(
-            status.HTTP_400_BAD_REQUEST, detail=f"object not readable: {exc}"
-        ) from exc
-
-    asset = Asset(storage_key=body.storage_key, size_bytes=size_bytes)
-    session.add(asset)
-    session.flush()
-    log.info("asset.registered", asset_id=asset.id, bytes=size_bytes)
+    asset = register_asset_row(session, body.storage_key)
+    log.info("asset.registered", asset_id=asset.id, bytes=asset.size_bytes)
     return asset
 
 
@@ -159,29 +146,25 @@ def publish(
 
 @router.get("/schedule", response_model=list[BacklogEntry])
 def list_schedule(limit: int = 50, session: Session = Depends(get_session)) -> list[BacklogEntry]:
-    """Return the backlog, oldest first — the order it will be published in.
+    """Return the backlog in the exact order it will be published in.
 
     Grouped by asset because that is the unit released: one asset goes out per
-    slot, carrying every platform it was queued for.
+    slot, carrying every platform it was queued for. Ordering is delegated to
+    `sau.schedule.ordered_backlog`, which the tick that actually releases also
+    uses -- a preview that disagrees with the release order is worse than no
+    preview. For a series that order is the episode number, never upload time.
     """
-    rows = list(
-        session.execute(
-            select(PublishJob)
-            .where(PublishJob.state == JobState.SCHEDULED)
-            .order_by(PublishJob.created_at)
-        ).scalars()
-    )
-
-    entries: dict[str, BacklogEntry] = {}
-    for job in rows:
-        entry = entries.get(job.asset_id)
-        if entry is None:
-            if len(entries) >= limit:
-                continue
-            entry = BacklogEntry(asset_id=job.asset_id, created_at=job.created_at, jobs=[])
-            entries[job.asset_id] = entry
-        entry.jobs.append(JobResponse.model_validate(job))
-    return list(entries.values())
+    return [
+        BacklogEntry(
+            asset_id=group.asset_id,
+            created_at=group.created_at,
+            jobs=[JobResponse.model_validate(job) for job in group.jobs],
+            series_id=group.series_id,
+            series_title=group.series_title,
+            part_index=group.part_index,
+        )
+        for group in ordered_backlog(session, limit=limit)
+    ]
 
 
 @router.post("/assets/{asset_id}/release", response_model=PublishResponse)
@@ -275,6 +258,8 @@ def create_app() -> FastAPI:
         allow_headers=["*"],
     )
     app.include_router(router)
+    app.include_router(series.router)
+    app.include_router(scheduling.router)
     return app
 
 

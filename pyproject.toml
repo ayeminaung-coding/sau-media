@@ -40,6 +40,9 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "BLE", "SIM", "RUF"]
+# Caption templates and their tests carry real Chinese copy, where fullwidth
+# punctuation is correct rather than a homoglyph slipped in by a bad paste.
+allowed-confusables = ["：", "，", "。", "！", "？", "、", "（", "）"]
 
 [tool.ruff.lint.flake8-bugbear]
 # FastAPI's dependency-injection idiom evaluates these in argument defaults.

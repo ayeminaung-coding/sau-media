@@ -1,5 +1,24 @@
+/* The shell: a sticky header, a rail, and one view. The rail and the view
+   share a max width with the header, so the three line up on wide screens. */
+
+.app__body {
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: var(--shell-max);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+}
+
 .app__footer {
   text-align: center;
   font-size: var(--text-md);
   padding-top: var(--space-2);
+}
+
+@media (max-width: 900px) {
+  .app__body {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }

@@ -72,4 +72,95 @@ export interface BacklogEntry {
   asset_id: string;
   created_at: string;
   jobs: Job[];
+  /** Set when the asset is an episode. The backlog is ordered by these. */
+  series_id: string | null;
+  series_title: string;
+  part_index: number | null;
+}
+
+/** One episode: an asset, its position in the series, and its jobs. */
+export interface SeriesPart {
+  id: string;
+  series_id: string;
+  asset_id: string;
+  part_index: number;
+  /** The one line that differs between episodes. */
+  hook: string;
+  source_filename: string;
+  duration_seconds: number | null;
+  jobs: Job[];
+  created_at: string;
+}
+
+export interface Series {
+  id: string;
+  slug: string;
+  title_zh: string;
+  title_en: string;
+  /** Never published — it is the context the hook generator is given. */
+  synopsis: string;
+  total_parts: number | null;
+  caption_template: string;
+  title_template: string;
+  next_teaser_template: string;
+  /** Keyed by platform id. */
+  hashtags: Record<string, string>;
+  default_targets: Platform[];
+  default_privacy: string;
+  created_at: string;
+  /** In episode order, never upload order. */
+  parts: SeriesPart[];
+  /** Gaps in the numbering: a file that was never uploaded. */
+  missing_parts: number[];
+  /** What `{total}` renders as. */
+  effective_total: number;
+}
+
+/** Everything a series can be created or edited with. */
+export type SeriesInput = Partial<
+  Omit<Series, "id" | "created_at" | "parts" | "missing_parts" | "effective_total">
+>;
+
+/** One part rendered for one platform, exactly as it would publish. */
+export interface CaptionPreview {
+  platform: Platform;
+  caption: string;
+  title: string;
+  caption_limit: number;
+  title_limit: number;
+}
+
+export interface GenerateHooksResult {
+  /** Which provider actually served — the first configured one that answered. */
+  provider: string;
+  hooks: Record<number, string>;
+  parts_updated: number;
+}
+
+/** One posting time of day. Stored server-side, so it is editable at runtime. */
+export interface Slot {
+  id: string;
+  label: string;
+  hour: number;
+  minute: number;
+  timezone: string;
+  enabled: boolean;
+  /** Local date this slot last released on. */
+  last_fired_on: string | null;
+}
+
+export type SlotInput = Omit<Slot, "id" | "last_fired_on">;
+
+/** One upcoming release: when it fires, and what is queued for it. */
+export interface PlanEntry {
+  fires_at: string;
+  asset_id: string | null;
+  series_title: string;
+  part_index: number | null;
+}
+
+export interface TickResult {
+  fired: number;
+  released: PublishResult[];
+  idle_slots: string[];
 }

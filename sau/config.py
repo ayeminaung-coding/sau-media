@@ -44,6 +44,25 @@ class Settings(BaseSettings):
     tiktok_access_token: str = ""
     tiktok_refresh_token: str = ""
 
+    #: Caption generators, tried in this order. A provider with no API key is
+    #: skipped rather than failing, so listing both and configuring one is a
+    #: valid setup: the second is a fallback for when the first is down, rate
+    #: limited, or refusing the prompt. Drafting captions is upstream of
+    #: publishing and never blocks it -- with every provider unreachable the
+    #: templates still render, they just render without a hook.
+    caption_providers: list[str] = Field(default=["gemini", "openrouter"])
+    caption_timeout_seconds: float = 60.0
+
+    gemini_api_key: str = ""
+    gemini_model: str = "gemini-2.5-flash"
+
+    openrouter_api_key: str = ""
+    openrouter_model: str = "google/gemini-2.5-flash"
+    #: OpenRouter attributes usage to these two headers on its dashboards and
+    #: public leaderboards. Optional, and cosmetic.
+    openrouter_referer: str = ""
+    openrouter_title: str = "Socials Auto Upload"
+
     #: Upload chunk size for both platforms. Must satisfy TikTok's 5 MiB
     #: minimum / 64 MiB maximum window.
     chunk_size_bytes: int = Field(default=16 * 1024 * 1024, ge=5 * 1024 * 1024)

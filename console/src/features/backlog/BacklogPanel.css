@@ -16,3 +16,9 @@
   -webkit-box-orient: vertical;
   line-clamp: 2;
 }
+
+.backlog__series {
+  display: block;
+  max-width: 22ch;
+  font-weight: 600;
+}

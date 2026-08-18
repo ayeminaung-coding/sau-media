@@ -1,6 +1,5 @@
 import { Button } from "../../components/Button";
 import { OptionCard } from "../../components/OptionCard";
-import { SLOT } from "../../domain/schedule";
 import type { ComposerState } from "../../hooks/useComposer";
 import type { PublishFlow } from "../../hooks/usePublishFlow";
 import { FlowSteps } from "./FlowSteps";
@@ -9,10 +8,12 @@ import "./PublishPanel.css";
 interface PublishPanelProps {
   composer: ComposerState;
   flow: PublishFlow;
+  /** The posting rhythm in one line. Comes from the stored slots, not a constant. */
+  slotSummary: string;
   onSubmit: () => void;
 }
 
-export function PublishPanel({ composer, flow, onSubmit }: PublishPanelProps) {
+export function PublishPanel({ composer, flow, slotSummary, onSubmit }: PublishPanelProps) {
   const running = flow.status === "running";
   const scheduling = composer.mode === "schedule";
   const blocked = composer.issues.length > 0;
@@ -34,7 +35,7 @@ export function PublishPanel({ composer, flow, onSubmit }: PublishPanelProps) {
           checked={scheduling}
           onChange={() => composer.setMode("schedule")}
           title="Add to backlog"
-          description={`Goes out in a later daily slot (${SLOT.label}), oldest first.`}
+          description={`Goes out in a later slot (${slotSummary}), in backlog order.`}
         />
       </div>
 
