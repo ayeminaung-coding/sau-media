@@ -44,6 +44,53 @@ one leg never re-uploads the other.
 n8n handles *when* to post. This service handles *how*. See
 [docs/N8N_INTEGRATION.md](docs/N8N_INTEGRATION.md).
 
+## Console
+
+A React operator console ships with the stack at <http://localhost:8080>: drop
+a video, tick the platforms, write one caption per platform, then publish now
+or add it to the daily backlog. It watches each job independently and can
+retry a single failed platform.
+
+It is a static bundle that talks to the API from the browser — see
+[console/README.md](console/README.md) for its layout and configuration.
+
+> The console has **no authentication**. Anyone who can reach it can post to
+> your accounts. Keep it on localhost, or put both it and the API behind an
+> access proxy (Cloudflare Access, Tailscale, or basic auth) before exposing
+> either of them.
+
+## Hosting
+
+Media stays on R2 wherever the rest runs — zero egress is the reason the
+platforms can pull directly.
+
+| Piece | What it needs | Good fit |
+|---|---|---|
+| Console (`dist/`) | static file hosting | Cloudflare Pages, Netlify, GitHub Pages — all free |
+| API + workers + Postgres + Redis + n8n | always-on containers, ffmpeg CPU, scratch disk | one small VPS running this compose file |
+| Media | S3-compatible, zero egress | Cloudflare R2 |
+
+**The simple answer: one VPS.** A 2 vCPU / 4 GB box (Hetzner, DigitalOcean,
+Vultr — roughly $5–12/month) runs the entire compose file, n8n included, with
+Caddy or nginx in front for TLS. Everything is already containerised, so it is
+`git pull && docker compose up -d --build`.
+
+Sizing is set by ffmpeg, not by traffic: transcoding is CPU-bound and writes
+the rendition to scratch disk, so give the box a couple of gigabytes of free
+space per concurrent job.
+
+What does **not** work: serverless platforms (Vercel, Netlify Functions,
+Cloudflare Workers) for the API or the workers. The workers are long-running
+processes that shell out to ffmpeg and hold Redis connections, which is the
+opposite of a request-scoped function. Free tiers that sleep idle containers
+(Render's free web services, for instance) also break the daily cron and the
+polling of in-flight jobs.
+
+Managed alternatives, if you would rather not run a box: Fly.io or Railway for
+the API and workers, Neon or Supabase for Postgres, Upstash for Redis, and
+either n8n Cloud or n8n on the same host. This costs more than the VPS and buys
+convenience, not capability.
+
 ## Documentation
 
 | Document | For |
@@ -54,6 +101,7 @@ n8n handles *when* to post. This service handles *how*. See
 | [Platform Notes](docs/PLATFORM_NOTES.md) | every TikTok/Facebook API assumption, with a verification checklist |
 | [Development Guide](docs/DEVELOPMENT.md) | setup, endpoints, end-to-end example, layout |
 | [n8n Integration](docs/N8N_INTEGRATION.md) | wiring the workflow |
+| [Console](console/README.md) | the operator UI: layout, configuration, deploying |
 | [CLAUDE.md](CLAUDE.md) | conventions and invariants for AI agents |
 
 ## Status

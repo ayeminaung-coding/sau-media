@@ -212,11 +212,11 @@ class FacebookClient:
             operation="video.finish",
         )
 
-    def create_video_from_url(self, file_url: str, description: str) -> str:
+    def create_video_from_url(self, file_url: str, description: str, title: str = "") -> str:
         """Publish a feed video by URL, letting Meta download it."""
         data = self._graph_post(
             f"{self._page_id}/videos",
-            {"file_url": file_url, "description": description},
+            {"file_url": file_url, "description": description, "title": title},
             operation="video.from_url",
         )
         return str(data["id"])

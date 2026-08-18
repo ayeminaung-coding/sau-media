@@ -1,0 +1,61 @@
+name: socials-auto-upload
+
+x-app: &app
+  build: .
+  env_file: .env
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_started
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sau
+      POSTGRES_PASSWORD: sau
+      POSTGRES_DB: sau
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sau"]
+      interval: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - redisdata:/data
+
+  api:
+    <<: *app
+    ports:
+      - "8000:8000"
+
+  # One worker per platform. Facebook transfers are long and CPU-heavy;
+  # keeping TikTok on its own worker means a 4 GB upload never delays a post.
+  worker-facebook:
+    <<: *app
+    command: ["python", "scripts/worker.py", "facebook"]
+
+  worker-tiktok:
+    <<: *app
+    command: ["python", "scripts/worker.py", "tiktok"]
+
+  n8n:
+    image: n8nio/n8n:latest
+    environment:
+      N8N_PORT: 5678
+      GENERIC_TIMEZONE: UTC
+      # The API is reachable from workflows at http://api:8000
+      SAU_API_URL: http://api:8000
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8ndata:/home/node/.n8n
+
+volumes:
+  pgdata:
+  redisdata:
+  n8ndata:

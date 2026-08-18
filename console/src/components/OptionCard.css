@@ -1,0 +1,47 @@
+.option {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition:
+    border-color var(--transition),
+    background var(--transition);
+}
+
+.option:hover {
+  background: var(--surface-hover);
+}
+
+.option--on {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.option__input {
+  margin-top: 3px;
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
+  flex: 0 0 auto;
+}
+
+.option__body {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
+.option__title {
+  font-size: var(--text-base);
+  font-weight: 600;
+}
+
+.option__desc {
+  font-size: var(--text-md);
+  color: var(--ink-muted);
+  line-height: 1.45;
+}

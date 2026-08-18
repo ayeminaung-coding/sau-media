@@ -79,9 +79,8 @@ then Slack/Telegram/email with `platform` and `last_error`.
 call `POST /jobs/{{$json.id}}/retry` for just the failed leg. The published
 sibling is untouched and is *not* re-uploaded.
 
-**Scheduled posting.** A Cron trigger reading from a content sheet, calling the
-same flow. Posting time is entirely n8n's concern; the service publishes
-whenever it is told.
+**Scheduled posting.** See the daily backlog below — that is the shipped
+version of this idea.
 
 **Human approval.** Insert a Wait-for-Webhook node between registration and
 `POST /publish`. Nothing has been sent to any platform at that point.
@@ -96,3 +95,67 @@ n8n is good at triggers, branching, waiting on humans, and notifying. It is
 bad at multi-gigabyte binaries and byte-offset resume loops. This division
 gives each side the part it handles well, and means a broken workflow never
 corrupts an in-flight upload.
+
+---
+
+# Daily backlog
+
+One post per day, drawn from a queue filled by hand in the console.
+
+The backlog lives in Postgres, not in n8n and not in Redis: a month of posts
+scheduled onto RQ would vanish with a `docker compose down` or a Redis flush.
+Jobs sit in state `scheduled` — created, captioned, and targeted, but never
+enqueued. n8n decides only *when* one is released.
+
+```
+Console                          n8n (daily 09:00)              Workers
+───────                          ─────────────────              ───────
+POST /publish {schedule:true}
+  → jobs in state `scheduled`
+    (nothing queued)
+                                 GET /schedule?limit=1
+                                 IF asset_id exists
+                                 POST /assets/{id}/release ────▶ transcode,
+                                                                 upload,
+                                 Wait 4m                         publish
+                                 GET /assets/{id}/jobs
+                                 → notify
+```
+
+## Endpoints
+
+| Call | Effect |
+|---|---|
+| `POST /publish` with `"schedule": true` | Creates the jobs in `scheduled`. Nothing is queued. |
+| `GET /schedule?limit=n` | Backlog grouped by asset, **oldest first** — the order it publishes in. |
+| `POST /assets/{id}/release` | Flips that asset's `scheduled` jobs to `pending` and queues them. 409 if it has none. |
+| `DELETE /assets/{id}/schedule` | Drops it from the backlog. Only deletes `scheduled` rows, so an in-flight job is never cancelled. |
+
+A `scheduled` job that somehow reaches a worker is declined by `_claim` rather
+than run: reaching a worker without going through `release_asset` means the
+schedule never chose it, and publishing it would post on the wrong day.
+
+## Install the workflow
+
+1. <http://localhost:5678> → *Workflows* → *Import from File* →
+   `n8n/daily-post.workflow.json`.
+2. Open **Daily 09:00** and confirm the hour.
+3. Toggle **Active**. Without this it only ever runs when you click Execute —
+   a manual run is logged as `"isManual": true` and no Cron is armed.
+
+The timezone is `Asia/Bangkok`, set in two places that must agree: the
+workflow's own `settings.timezone`, and `GENERIC_TIMEZONE` in
+`docker-compose.yml`. A workflow imported before that variable was set may
+have captured UTC — check the workflow settings if posts land seven hours off.
+
+## Notifications
+
+`Summarise` and `Backlog Empty` end their branches with a JSON summary and no
+side effect, so add a Slack/Telegram/email node after each. Wire both: a silent
+failure and a switched-off workflow look identical from the outside, which is
+why the empty-backlog branch notifies at all.
+
+`Summarise` reports per platform rather than pass/fail, because a mixed result
+is normal — TikTok can fail while the Reel publishes. Jobs still on the queue
+after the 4-minute wait are reported as `still_running`, not as failures; a
+long Facebook video can take longer than that.

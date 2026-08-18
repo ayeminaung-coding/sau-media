@@ -47,12 +47,17 @@ class Platform(enum.StrEnum):
 class JobState(enum.StrEnum):
     """Lifecycle of a single platform publish.
 
-    PENDING -> TRANSCODING -> UPLOADING -> PROCESSING -> PUBLISHED
-                                                      \\-> FAILED
+    SCHEDULED -> PENDING -> TRANSCODING -> UPLOADING -> PROCESSING -> PUBLISHED
+                                                                   \\-> FAILED
     PROCESSING means the bytes are delivered and the platform is encoding;
     it is polled, not pushed.
+
+    SCHEDULED is the backlog: the job exists with its caption and targets
+    settled, but was never put on a queue. It leaves that state only when
+    something releases it — the daily n8n cron, or a human in the console.
     """
 
+    SCHEDULED = "scheduled"
     PENDING = "pending"
     TRANSCODING = "transcoding"
     UPLOADING = "uploading"
@@ -114,6 +119,9 @@ class PublishJob(Base):
     )
 
     caption: Mapped[str] = mapped_column(Text, default="")
+    #: Optional headline. TikTok shows it as the post title; Facebook feed
+    #: video has a distinct title field. Reels have none and ignore it.
+    title: Mapped[str] = mapped_column(String(255), default="")
     privacy: Mapped[str] = mapped_column(String(64), default="PUBLIC_TO_EVERYONE")
 
     #: Platform-side identifier: FB video id, or TikTok publish_id.

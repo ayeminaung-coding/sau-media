@@ -1,0 +1,5 @@
+.app__footer {
+  text-align: center;
+  font-size: var(--text-md);
+  padding-top: var(--space-2);
+}

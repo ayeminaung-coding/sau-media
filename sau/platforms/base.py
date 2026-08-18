@@ -19,6 +19,7 @@ class PublishRequest:
     storage_key: str
     size_bytes: int
     caption: str
+    title: str
     privacy: str
     #: Bytes the platform has already accepted, for a resumed upload.
     resume_offset: int = 0

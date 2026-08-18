@@ -45,6 +45,11 @@ and the code encodes them deliberately.
 `publisher.py` = flow (the publish sequence).
 Keep that separation; tests target the client boundary.
 
+The console is a React/TypeScript app under `console/`, layered
+`api → domain → hooks → features`; its rules are in
+[console/README.md](console/README.md). Platform quirks belong in
+`console/src/domain/platforms.ts`, never inline in a component.
+
 Everything else is mapped in [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md#layout).
 
 Credential acquisition is documented in

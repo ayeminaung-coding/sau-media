@@ -144,7 +144,7 @@ class FacebookVideoPublisher(_FacebookPublisher):
             if _hosted_uploads_available():
                 file_url = storage.public_url(request.storage_key)
                 video_id = with_retries(
-                    lambda: client.create_video_from_url(file_url, request.caption),
+                    lambda: client.create_video_from_url(file_url, request.caption, request.title),
                     label="facebook.video.hosted",
                 )
                 request.on_progress(request.size_bytes)
@@ -179,7 +179,7 @@ class FacebookVideoPublisher(_FacebookPublisher):
             request.on_progress(start)
 
         with_retries(
-            lambda: client.finish_video_session(session_id, request.caption),
+            lambda: client.finish_video_session(session_id, request.caption, request.title),
             label="facebook.video.finish",
         )
         return video_id

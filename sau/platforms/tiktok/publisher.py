@@ -132,7 +132,9 @@ class TikTokPublisher(Publisher):
             )
 
         return {
-            "title": request.caption[:MAX_TITLE_CHARS],
+            # TikTok has one text field, shown as the post caption. A title
+            # is used when given; otherwise the caption fills that slot.
+            "title": (request.title or request.caption)[:MAX_TITLE_CHARS],
             "privacy_level": privacy,
             "disable_duet": False,
             "disable_comment": False,

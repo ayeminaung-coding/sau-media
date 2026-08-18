@@ -1,0 +1,14 @@
+.fields {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.fields__note {
+  padding: var(--space-3);
+  border-left: 2px solid var(--line-strong);
+  background: var(--surface-sunken);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  color: var(--ink-muted);
+  font-size: var(--text-md);
+  line-height: 1.55;
+}

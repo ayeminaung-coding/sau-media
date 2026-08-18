@@ -43,6 +43,7 @@ class _JobContext:
     job_id: str
     platform: Platform
     caption: str
+    title: str
     privacy: str
     resume_offset: int
     attempts: int
@@ -65,6 +66,12 @@ def _claim(job_id: str) -> _JobContext | None:
         if job.is_terminal:
             log.info("job.already_terminal", job_id=job_id, state=job.state.value)
             return None
+        # A backlog job reaching a worker means something enqueued it without
+        # going through `release_asset`. Publishing it would post content on a
+        # day the schedule never chose, so decline rather than run it.
+        if job.state is JobState.SCHEDULED:
+            log.warning("job.not_released", job_id=job_id)
+            return None
 
         job.attempts += 1
         if job.attempts > MAX_ATTEMPTS:
@@ -76,6 +83,7 @@ def _claim(job_id: str) -> _JobContext | None:
             job_id=job.id,
             platform=job.platform,
             caption=job.caption,
+            title=job.title,
             privacy=job.privacy,
             resume_offset=job.uploaded_bytes,
             attempts=job.attempts,
@@ -155,6 +163,7 @@ def run_publish_job(job_id: str) -> None:
                 storage_key=storage_key,
                 size_bytes=size_bytes,
                 caption=ctx.caption,
+                title=ctx.title,
                 privacy=ctx.privacy,
                 resume_offset=ctx.resume_offset,
                 on_progress=lambda uploaded: _record_progress(job_id, uploaded),
@@ -225,9 +234,20 @@ def poll_publish_job(job_id: str, poll_count: int = 1) -> None:
 def dispatch(job_ids: list[str]) -> None:
     """Fan a batch of freshly created jobs out to their platform queues."""
     with session_scope() as session:
-        jobs = (session.get(PublishJob, job_id) for job_id in job_ids)
-        targets = [(job.id, job.platform) for job in jobs if job is not None]
+        found = {
+            job.id: job.platform
+            for job in (session.get(PublishJob, job_id) for job_id in job_ids)
+            if job is not None
+        }
 
-    for job_id, platform in targets:
+    for job_id, platform in found.items():
         queue_for(platform).enqueue(run_publish_job, job_id)
         log.info("job.dispatched", job_id=job_id, platform=platform.value)
+
+    # A row that cannot be read here is never retried by anything: it simply
+    # stays pending with no error attached. Dropping it quietly makes that
+    # state indistinguishable from a queue that is merely slow, so say so.
+    missing = [job_id for job_id in job_ids if job_id not in found]
+    if missing:
+        log.error("job.dispatch.missing", job_ids=missing)
+        raise RuntimeError(f"jobs not found at dispatch, left unqueued: {', '.join(missing)}")

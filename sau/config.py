@@ -1,9 +1,13 @@
 """Typed application settings, loaded once from the environment."""
 
+import re
 from functools import lru_cache
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+#: Cloudflare account IDs are exactly 32 lowercase hex characters.
+_R2_ACCOUNT_ID_RE = re.compile(r"[0-9a-f]{32}")
 
 
 class Settings(BaseSettings):
@@ -12,6 +16,10 @@ class Settings(BaseSettings):
     database_url: str
     redis_url: str
     log_level: str = "INFO"
+
+    #: Origins allowed to call the API from a browser. The console is a
+    #: separate static origin, so it must be listed explicitly.
+    cors_origins: list[str] = Field(default=["http://localhost:8080"])
 
     r2_account_id: str = ""
     r2_access_key_id: str = ""
@@ -42,6 +50,23 @@ class Settings(BaseSettings):
 
     @property
     def r2_endpoint_url(self) -> str:
+        """Build the R2 endpoint, rejecting an account ID that cannot form one.
+
+        Checked here rather than as a field validator so that a broken R2
+        credential only fails the calls that actually need storage: the API
+        still serves health, job listing and retries. Any string produces a
+        syntactically valid host, so without this check a truncated ID is
+        only caught when Cloudflare's edge refuses the TLS handshake for a
+        subdomain it does not recognise -- surfacing as a bare
+        `SSLV3_ALERT_HANDSHAKE_FAILURE` from botocore, several layers away
+        from the setting that caused it.
+        """
+        if not _R2_ACCOUNT_ID_RE.fullmatch(self.r2_account_id):
+            raise RuntimeError(
+                f"R2_ACCOUNT_ID must be 32 lowercase hex characters, got "
+                f"{len(self.r2_account_id)}. Copy it from the R2 overview sidebar, "
+                "or from your dashboard URL (dash.cloudflare.com/<account-id>/r2)."
+            )
         return f"https://{self.r2_account_id}.r2.cloudflarestorage.com"
 
     @property

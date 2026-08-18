@@ -1,0 +1,27 @@
+.progress {
+  height: 5px;
+  width: 100%;
+  border-radius: var(--radius-pill);
+  background: var(--surface-sunken);
+  border: 1px solid var(--line);
+  overflow: hidden;
+}
+
+.progress__fill {
+  height: 100%;
+  border-radius: inherit;
+  transition: width 260ms ease-out;
+  background: var(--accent);
+}
+
+.progress--ok .progress__fill {
+  background: var(--ok);
+}
+
+.progress--err .progress__fill {
+  background: var(--err);
+}
+
+.progress--warn .progress__fill {
+  background: var(--warn);
+}

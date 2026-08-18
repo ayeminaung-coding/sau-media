@@ -31,7 +31,7 @@ services:
   api:
     <<: *app
     ports:
-      - "8000:8000"
+      - "8001:8000"
 
   # One worker per platform. Facebook transfers are long and CPU-heavy;
   # keeping TikTok on its own worker means a 4 GB upload never delays a post.
@@ -43,11 +43,24 @@ services:
     <<: *app
     command: ["python", "scripts/worker.py", "tiktok"]
 
+  # React console, built once and served as static files by nginx. The page
+  # talks to the API from the browser, so nothing here needs to reach the
+  # compose network — but the API must list this origin in CORS_ORIGINS.
+  console:
+    build:
+      context: ./console
+      args:
+        # Where the *browser* reaches the API, not where compose does.
+        VITE_API_BASE_URL: ${CONSOLE_API_BASE_URL:-http://localhost:8001}
+    ports:
+      - "8080:80"
+
   n8n:
     image: n8nio/n8n:latest
     environment:
       N8N_PORT: 5678
-      GENERIC_TIMEZONE: UTC
+      GENERIC_TIMEZONE: Asia/Bangkok
+      TZ: Asia/Bangkok
       # The API is reachable from workflows at http://api:8000
       SAU_API_URL: http://api:8000
     ports:

@@ -1,0 +1,13 @@
+.job__platform {
+  display: block;
+  font-weight: 600;
+}
+
+.job__id {
+  font-size: var(--text-xs);
+}
+
+.job__rail {
+  margin-top: 6px;
+  max-width: 150px;
+}

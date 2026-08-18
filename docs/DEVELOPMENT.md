@@ -15,7 +15,13 @@ cp .env.example .env
 # fill in R2 + platform credentials, then:
 docker compose up -d --build
 docker compose exec api python scripts/init_db.py
+docker compose exec api python scripts/init_r2_cors.py
 ```
+
+`init_r2_cors.py` allows `CORS_ORIGINS` to PUT into the bucket from a browser.
+Without it the console's upload fails before a single byte leaves the tab — a
+presigned URL authorises the upload, but the bucket policy decides which origin
+may use it. Re-run it whenever `CORS_ORIGINS` changes.
 
 Services: API on `:8000`, n8n on `:5678`, one worker per platform.
 
@@ -124,8 +130,15 @@ sau/
     base.py        the Publisher interface
     facebook/      client.py (transport) + publisher.py (flow)
     tiktok/        client.py (transport) + publisher.py (flow)
+console/           React operator console (see console/README.md)
+  src/api/         wire types + the only place a fetch is issued
+  src/domain/      platform rules, job lifecycle, slot maths — pure
+  src/hooks/       state: composer, publish flow, polling, backlog
+  src/components/  generic UI kit
+  src/features/    one folder per panel, composed by App.tsx
 docs/              this documentation
-scripts/           init_db, worker, seed_tokens
+n8n/               importable workflows (daily backlog release)
+scripts/           init_db, init_r2_cors, worker, seed_tokens
 tests/
 ```
 

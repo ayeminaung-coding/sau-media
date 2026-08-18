@@ -95,17 +95,51 @@ def presigned_url(key: str, expires_seconds: int = 3600) -> str:
     )
 
 
-def presigned_upload_url(key: str, expires_seconds: int = 3600) -> str:
+def presigned_upload_url(
+    key: str, expires_seconds: int = 3600, content_type: str = "video/mp4"
+) -> str:
     """Time-limited PUT URL so clients upload straight to R2.
 
     Large source files must never be proxied through the API process.
+
+    `content_type` is part of the SigV4 signature, so the caller must send the
+    exact same value as the `Content-Type` header or R2 rejects the PUT with
+    SignatureDoesNotMatch.
     """
     return str(
         _client().generate_presigned_url(
             "put_object",
-            Params={"Bucket": get_settings().r2_bucket, "Key": key, "ContentType": "video/mp4"},
+            Params={
+                "Bucket": get_settings().r2_bucket,
+                "Key": key,
+                "ContentType": content_type,
+            },
             ExpiresIn=expires_seconds,
         )
+    )
+
+
+def put_bucket_cors(origins: list[str]) -> None:
+    """Install the bucket CORS policy that browser-side PUTs depend on.
+
+    A presigned URL authorises the upload but says nothing about which origin
+    may issue it: without this policy the browser's preflight fails and the PUT
+    never leaves the tab. `video/*` is not a CORS-simple Content-Type, so every
+    console upload is preflighted.
+    """
+    _client().put_bucket_cors(
+        Bucket=get_settings().r2_bucket,
+        CORSConfiguration={
+            "CORSRules": [
+                {
+                    "AllowedOrigins": origins,
+                    "AllowedMethods": ["PUT", "GET", "HEAD"],
+                    "AllowedHeaders": ["content-type"],
+                    "ExposeHeaders": ["ETag"],
+                    "MaxAgeSeconds": 3600,
+                }
+            ]
+        },
     )
 
 
