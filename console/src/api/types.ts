@@ -87,7 +87,13 @@ export interface SeriesPart {
   /** The one line that differs between episodes. */
   hook: string;
   source_filename: string;
+  /** Known as soon as the part is registered. */
+  size_bytes: number;
+  storage_key: string;
+  /** Filled by the first transcode — null on a part that has never published. */
   duration_seconds: number | null;
+  width: number | null;
+  height: number | null;
   jobs: Job[];
   created_at: string;
 }
@@ -95,10 +101,15 @@ export interface SeriesPart {
 export interface Series {
   id: string;
   slug: string;
-  title_zh: string;
+  /** The title as it appears in the caption. Renders as {series}. */
+  title_local: string;
   title_en: string;
   /** Never published — it is the context the hook generator is given. */
   synopsis: string;
+  /** What the hooks are drafted in. Per series, not global. */
+  language: string;
+  /** One real caption in your own voice, shown to the model as the house style. */
+  style_example: string;
   total_parts: number | null;
   caption_template: string;
   title_template: string;

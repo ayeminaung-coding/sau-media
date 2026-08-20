@@ -11,14 +11,12 @@ from sau.captions.template import (
 from sau.models import CAPTION_LIMITS, TITLE_LIMITS, Platform
 
 COPY = SeriesCopy(
-    title_zh="仙路",
-    title_en="Immortal Road",
-    caption_template=(
-        "《{series_zh}》第{part}集 / 共{total}集\n\n{hook}\n\n{next_teaser}\n{hashtags}"
-    ),
-    title_template="《{series_zh}》第{part}集",
-    next_teaser_template="下集预告：第{next_part}集",
-    hashtags={"tiktok": "#AI动画 #国漫", "facebook_reel": "#AIAnimation"},
+    title_local="အစွမ်းထက်ကူးပြောင်းသူ",
+    title_en="The Transmigrator",
+    caption_template="အပိုင်း ({part}) {series}\n\n{hook}\n\n{next_teaser}\n{hashtags}",
+    title_template="အပိုင်း ({part}) {series}",
+    next_teaser_template="နောက်အပိုင်း ({next_part})",
+    hashtags={"tiktok": "#MyanmarTiktok #fypviral", "facebook_reel": "#ChineseAnimation"},
 )
 
 
@@ -57,7 +55,7 @@ class TestFit:
         assert fit("hello there wonderful world", 20).startswith("hello there")
         assert "…" in fit("hello there wonderful world", 20)
 
-    def test_chinese_without_spaces_is_not_gutted(self):
+    def test_script_without_spaces_is_not_gutted(self):
         # Backing up to the last space would discard almost everything, since
         # there is no space to find. The guard is what keeps this usable.
         text = "这是一段没有空格的中文文字" * 5
@@ -69,31 +67,31 @@ class TestFit:
 
 class TestRender:
     def test_renders_a_middle_episode(self):
-        out = render(COPY, part_index=3, total=8, hook="他终于开口了", platform=Platform.TIKTOK)
+        out = render(COPY, part_index=3, total=8, hook="သူမသိလိုက်တဲ့အခါ", platform=Platform.TIKTOK)
         assert isinstance(out, Rendered)
-        assert "第3集" in out.caption
-        assert "共8集" in out.caption
-        assert "他终于开口了" in out.caption
-        assert "下集预告：第4集" in out.caption
-        assert "#AI动画" in out.caption
+        assert "အပိုင်း (3)" in out.caption
+        assert "အစွမ်းထက်ကူးပြောင်းသူ" in out.caption
+        assert "သူမသိလိုက်တဲ့အခါ" in out.caption
+        assert "နောက်အပိုင်း (4)" in out.caption
+        assert "#MyanmarTiktok" in out.caption
 
     def test_final_episode_promises_no_next_one(self):
-        out = render(COPY, part_index=8, total=8, hook="结局", platform=Platform.TIKTOK)
-        assert "下集预告" not in out.caption
+        out = render(COPY, part_index=8, total=8, hook="နိဂုံး", platform=Platform.TIKTOK)
+        assert "နောက်အပိုင်း" not in out.caption
         # And the line it occupied does not survive as a blank one.
         assert "\n\n\n" not in out.caption
 
     def test_empty_hook_leaves_no_hole(self):
         out = render(COPY, part_index=2, total=8, hook="", platform=Platform.TIKTOK)
         assert "\n\n\n" not in out.caption
-        assert out.caption.startswith("《仙路》第2集")
+        assert out.caption.startswith("အပိုင်း (2)")
 
     def test_hashtags_are_per_platform(self):
         tiktok = render(COPY, part_index=1, total=3, hook="h", platform=Platform.TIKTOK)
         reel = render(COPY, part_index=1, total=3, hook="h", platform=Platform.FACEBOOK_REEL)
-        assert "#AI动画" in tiktok.caption
-        assert "#AIAnimation" in reel.caption
-        assert "#AI动画" not in reel.caption
+        assert "#MyanmarTiktok" in tiktok.caption
+        assert "#ChineseAnimation" in reel.caption
+        assert "#MyanmarTiktok" not in reel.caption
 
     def test_platform_with_no_hashtags_configured_renders_without_them(self):
         # Last part, so neither a hashtag block nor a teaser follows the hook —
@@ -109,11 +107,11 @@ class TestRender:
 
     def test_title_is_built_where_the_platform_has_one(self):
         out = render(COPY, part_index=1, total=3, hook="h", platform=Platform.TIKTOK)
-        assert out.title == "《仙路》第1集"
+        assert out.title == "အပိုင်း (1) အစွမ်းထက်ကူးပြောင်းသူ"
 
     def test_output_never_exceeds_the_platform_limit(self):
         long_copy = SeriesCopy(
-            title_zh="仙路",
+            title_local="အစွမ်းထက်",
             caption_template="{hook}",
             title_template="{hook}",
             next_teaser_template="",

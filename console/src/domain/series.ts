@@ -79,7 +79,7 @@ export function pendingParts(series: Series): SeriesPart[] {
  * remember is one they will not use.
  */
 export const TEMPLATE_FIELDS: readonly { name: string; description: string }[] = [
-  { name: "{series_zh}", description: "Chinese series title" },
+  { name: "{series}", description: "The series title, as it reads in the caption" },
   { name: "{series_en}", description: "English series title" },
   { name: "{part}", description: "This episode's number" },
   { name: "{total}", description: "Declared episode count, or how many are registered" },

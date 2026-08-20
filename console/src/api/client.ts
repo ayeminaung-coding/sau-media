@@ -37,6 +37,16 @@ export interface RegisterPartBody {
   hook?: string;
 }
 
+export interface GenerateHooksBody {
+  language?: string;
+  max_chars?: number;
+  /** Redraft hooks that already have text. */
+  overwrite?: boolean;
+  /** Only these episodes. The rest still go into the prompt as settled, so a
+   *  single redraft still follows on from its neighbours. */
+  parts?: number[];
+}
+
 export interface PublishSeriesBody {
   targets?: Platform[];
   privacy?: string;
@@ -65,7 +75,7 @@ export interface SauClient {
   updatePart(ref: string, partId: string, body: { hook?: string; part_index?: number }): Promise<Series>;
   deletePart(ref: string, partId: string): Promise<void>;
   previewPart(ref: string, partId: string, signal?: AbortSignal): Promise<CaptionPreview[]>;
-  generateHooks(ref: string, body: { language?: string; max_chars?: number; overwrite?: boolean }): Promise<GenerateHooksResult>;
+  generateHooks(ref: string, body: GenerateHooksBody): Promise<GenerateHooksResult>;
   publishSeries(ref: string, body: PublishSeriesBody): Promise<PublishResult>;
 
   listSlots(signal?: AbortSignal): Promise<Slot[]>;

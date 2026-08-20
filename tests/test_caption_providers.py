@@ -20,7 +20,14 @@ from sau.errors import PlatformError
 
 
 def settings(**overrides) -> Settings:
+    """Settings built from these values alone.
+
+    `_env_file=None` matters: without it pydantic-settings layers the
+    developer's real `.env` underneath, and every "no provider configured"
+    case below silently passes only on a machine that has no API keys.
+    """
     base = {
+        "_env_file": None,
         "database_url": "sqlite+pysqlite:///:memory:",
         "redis_url": "redis://localhost:6379/15",
     }

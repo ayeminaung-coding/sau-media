@@ -6,7 +6,11 @@ from sau.captions.generate import PartBrief, build_prompt, parse_hooks
 from sau.captions.providers import CaptionError
 from sau.captions.template import SeriesCopy
 
-COPY = SeriesCopy(title_zh="仙路", title_en="Immortal Road", synopsis="A boy finds a sword.")
+COPY = SeriesCopy(
+    title_local="အစွမ်းထက်ကူးပြောင်းသူ",
+    title_en="The Transmigrator",
+    synopsis="A girl who understands animals marries a prince feigning madness.",
+)
 BRIEFS = [PartBrief(index=1, label="part1_open"), PartBrief(index=2), PartBrief(index=3)]
 
 
@@ -17,21 +21,40 @@ class TestBuildPrompt:
             assert f"part {index}" in prompt
 
     def test_carries_the_synopsis(self):
-        assert "A boy finds a sword." in build_prompt(COPY, BRIEFS)
+        assert "feigning madness" in build_prompt(COPY, BRIEFS)
 
     def test_states_the_length_limit(self):
-        assert "40 characters" in build_prompt(COPY, BRIEFS, max_chars=40)
+        assert "240 characters" in build_prompt(COPY, BRIEFS, max_chars=240)
 
-    def test_states_the_language(self):
+    def test_language_defaults_to_the_series_own(self):
+        # The audience's language, not the animation's — and per series, so two
+        # shows for two audiences do not have to share one global setting.
+        assert "Burmese" in build_prompt(COPY, BRIEFS)
+
+    def test_language_can_be_overridden_for_one_run(self):
         assert "Thai" in build_prompt(COPY, BRIEFS, language="Thai")
+
+    def test_the_style_example_is_shown_as_the_voice_to_match(self):
+        # An example of the wanted voice beats describing it, and the gap
+        # widens the less of a language the model has seen.
+        sample = "တိရစ္ဆာန်တွေရဲ့ စကားကို နားလည်တဲ့ မိန်းကလေးဟာ...😂😂"
+        prompt = build_prompt(SeriesCopy(style_example=sample), BRIEFS)
+        assert "HOUSE STYLE" in prompt
+        assert sample in prompt
+
+    def test_no_style_example_leaves_the_section_out_entirely(self):
+        assert "HOUSE STYLE" not in build_prompt(COPY, BRIEFS)
+
+    def test_emoji_are_allowed_rather_than_banned(self):
+        assert "Emoji" in build_prompt(COPY, BRIEFS)
 
     def test_settled_hooks_are_marked_as_fixed(self):
         # This is what makes a re-run extend the arc rather than rewrite lines
         # the operator already approved.
-        briefs = [PartBrief(index=1, hook="已经写好了"), PartBrief(index=2)]
+        briefs = [PartBrief(index=1, hook="ရေးပြီးသား"), PartBrief(index=2)]
         prompt = build_prompt(COPY, briefs)
         assert "ALREADY WRITTEN" in prompt
-        assert "已经写好了" in prompt
+        assert "ရေးပြီးသား" in prompt
 
     def test_asks_for_one_call_covering_the_whole_arc(self):
         prompt = build_prompt(COPY, BRIEFS)

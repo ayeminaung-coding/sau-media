@@ -49,7 +49,8 @@ switched off, misconfigured, or rate-limited.
 
 | Placeholder | Resolves to |
 |---|---|
-| `{series_zh}` / `{series_en}` | The series titles |
+| `{series}` | The title as it reads in the caption |
+| `{series_en}` | The English title, if there is one |
 | `{part}` | This episode's number |
 | `{total}` | `total_parts` if declared, else how many parts are registered |
 | `{next_part}` | The next episode's number; empty on the last one |
@@ -57,6 +58,12 @@ switched off, misconfigured, or rate-limited.
 | `{hook}` | The one line that varies |
 | `{hashtags}` | The hashtag block for the platform being rendered |
 | `{synopsis}` | The series synopsis |
+
+`SeriesPartResponse` also carries the asset behind an episode — `size_bytes` and
+`storage_key` from registration, and `duration_seconds`/`width`/`height`, which
+stay null until the first transcode opens the file. That is the first time
+anything reads it, so a part that has never published has a size and nothing
+else.
 
 Three rules are worth knowing because they are not obvious:
 
@@ -74,6 +81,39 @@ Three rules are worth knowing because they are not obvious:
 Caption limits per platform live in `sau.models.CAPTION_LIMITS`, mirroring the
 same table in `console/src/domain/platforms.ts`.
 
+### The caption is not in the animation's language
+
+The source is Chinese; the audience reading the caption may not be. `language`
+is therefore a per-series field (default `Burmese`), not a global setting — two
+shows for two audiences do not have to agree.
+
+A worked example, which is the format this was built against:
+
+```
+Template     အပိုင်း ({part}) {series}
+
+             {hook}
+
+             {hashtags}
+
+Renders to   အပိုင်း (1) အစွမ်းထက်ကူးပြောင်းသူနဲ့ စိတ်ဖတ်တဲ့မင်းသား🐻‍❄️🐻‍❄️
+
+             တိရစ္ဆာန်တွေရဲ့ စကားကို နားလည်တဲ့ ... သိလိုက်ရတဲ့အခါ...😂😂
+
+             #MyanmarTiktok #fypviral #တရုတ်ဇာတ်လမ်းတိုများ …
+```
+
+Only the middle paragraph is generated. The title line and the hashtag block
+are the template, identical on every episode, and `{part}` comes from the
+filename. Note there is no `{next_teaser}` here: when the hook itself ends on
+the cliffhanger — which is how this style reads — a separate teaser line is
+redundant, so the default teaser template is empty.
+
+A series created with only a slug **names itself from its first episode**:
+`part1_movieName.mp4` already carries the title, so the descriptive tail of the
+filename fills a blank `title_local`. It only ever fills a blank; a title typed
+by the operator is never overwritten.
+
 ## Drafting the hook
 
 `POST /series/{ref}/generate-hooks` drafts every episode's hook in **one call**.
@@ -88,6 +128,27 @@ episodes, which is the smaller reason but not a bad one.
 Hooks that already have text are shown to the model as settled unless
 `overwrite` is set, so a re-run after adding part 9 extends the arc instead of
 rewriting lines the operator already approved.
+
+### Redrafting one episode
+
+`parts: [3]` asks for episode 3 alone — but every other episode still goes into
+the prompt with its settled hook. A single redraft therefore lands *between* its
+neighbours rather than contradicting them, which is the same reason the whole
+series is generated in one call to begin with. Pair it with `overwrite: true`,
+or the episode is skipped for already having a hook and the call 409s.
+
+### The style example is the lever
+
+`Series.style_example` holds one real caption in the operator's own voice, and
+it goes into the prompt as the house style to match. This does more for output
+quality than every other field combined, and the effect grows the less of a
+language the model has seen — describing a voice in English and asking for
+Burmese produces stilted translation; showing one real Burmese caption produces
+something in the same register.
+
+The length default follows from the same place. `DEFAULT_HOOK_MAX_CHARS` is 240,
+measured from real captions rather than from the platform limits, which are an
+order of magnitude larger than anything anyone reads.
 
 What comes back is always a draft. It lands in `SeriesPart.hook`, the operator
 edits it in the console, and the template renders the published text from it.
@@ -149,13 +210,13 @@ evening.
 
 | Call | Effect |
 |---|---|
-| `POST /series` | Create one. `slug` is the handle; every other field has a default. |
+| `POST /series` | Create one. `slug` is the handle; every other field has a default, and the title fills itself from the first episode's filename. |
 | `GET /series` / `GET /series/{ref}` | `ref` is an id **or** a slug. Parts come back in episode order, with the gaps listed. |
 | `PATCH /series/{ref}` | Partial. An explicit null only clears `total_parts`. |
 | `POST /series/{ref}/parts` | Attach an uploaded object. Episode number from the filename unless overridden. |
 | `PATCH /series/{ref}/parts/{id}` | Edit the hook, or renumber. |
 | `GET /series/{ref}/parts/{id}/preview` | Render for every platform, through the same function publishing uses. |
-| `POST /series/{ref}/generate-hooks` | Draft every hook in one call. 502 if no provider answers. |
+| `POST /series/{ref}/generate-hooks` | Draft hooks. `parts: [n]` targets one episode, `overwrite` redrafts settled ones. 502 if no provider answers, 409 if there is nothing to write. |
 | `POST /series/{ref}/publish` | Fan out. `schedule: true` (the default) drips them through the backlog. |
 | `GET`/`PUT /schedule/slots` | The posting rhythm. PUT replaces the whole set. |
 | `GET /schedule/plan` | Next firing times, paired with what is queued. |

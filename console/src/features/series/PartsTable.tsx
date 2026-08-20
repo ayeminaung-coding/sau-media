@@ -2,8 +2,9 @@ import { useEffect, useState } from "react";
 import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
-import { tone } from "../../domain/jobs";
+import { STATE_HELP, tone } from "../../domain/jobs";
 import { byPart, isQueued } from "../../domain/series";
+import { formatBytes, formatTime } from "../../lib/format";
 import type { Series, SeriesPart } from "../../api/types";
 import type { PartUpload } from "../../hooks/useSeries";
 import { cx } from "../../lib/cx";
@@ -17,6 +18,8 @@ interface PartsTableProps {
   onHookChange: (partId: string, hook: string) => void;
   onPreview: (partId: string) => void;
   onRemove: (partId: string) => void;
+  /** Redraft one episode's hook, by episode number. */
+  onDraft: (partIndex: number) => void;
 }
 
 /**
@@ -33,6 +36,7 @@ export function PartsTable({
   onHookChange,
   onPreview,
   onRemove,
+  onDraft,
 }: PartsTableProps) {
   const parts = byPart(series.parts);
   const active = uploads.filter((upload) => upload.status !== "done");
@@ -93,6 +97,7 @@ export function PartsTable({
                   onHookChange={onHookChange}
                   onPreview={onPreview}
                   onRemove={onRemove}
+                  onDraft={onDraft}
                 />
               ))}
             </tbody>
@@ -109,18 +114,21 @@ interface PartRowProps {
   onHookChange: (partId: string, hook: string) => void;
   onPreview: (partId: string) => void;
   onRemove: (partId: string) => void;
+  onDraft: (partIndex: number) => void;
 }
 
-function PartRow({ part, busy, onHookChange, onPreview, onRemove }: PartRowProps) {
+function PartRow({ part, busy, onHookChange, onPreview, onRemove, onDraft }: PartRowProps) {
   // Kept locally while it is being typed, and pushed on blur: saving every
   // keystroke would be one request per character.
   const [draft, setDraft] = useState(part.hook);
+  const [open, setOpen] = useState(false);
   useEffect(() => setDraft(part.hook), [part.hook]);
 
   const queued = isQueued(part);
   const state = part.jobs[0]?.state;
 
   return (
+    <>
     <tr>
       <td>
         <span className="parts__index">part {part.part_index}</span>
@@ -148,8 +156,24 @@ function PartRow({ part, busy, onHookChange, onPreview, onRemove }: PartRowProps
       </td>
       <td>
         <div className="table__actions">
+          <Button
+            size="sm"
+            loading={busy}
+            title="Redraft this episode's hook. The rest of the series still goes into the prompt, so it follows on from its neighbours."
+            onClick={() => onDraft(part.part_index)}
+          >
+            Draft
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => onPreview(part.id)}>
             Preview
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            aria-expanded={open}
+            onClick={() => setOpen((current) => !current)}
+          >
+            {open ? "Hide" : "Details"}
           </Button>
           <Button
             size="sm"
@@ -161,6 +185,85 @@ function PartRow({ part, busy, onHookChange, onPreview, onRemove }: PartRowProps
             Remove
           </Button>
         </div>
+      </td>
+    </tr>
+    {open && <PartDetails part={part} />}
+    </>
+  );
+}
+
+/** The asset behind one episode, and what each platform has done with it. */
+function PartDetails({ part }: { part: SeriesPart }) {
+  // Duration and resolution are written by the first transcode, which is the
+  // first time anything actually opens the file. Saying so beats showing a
+  // blank that reads like a failure.
+  const probed = part.duration_seconds !== null;
+
+  return (
+    <tr className="parts__details-row">
+      <td colSpan={4}>
+        <dl className="parts__details">
+          <div>
+            <dt>File</dt>
+            <dd className="mono truncate">{part.source_filename || "—"}</dd>
+          </div>
+          <div>
+            <dt>Size</dt>
+            <dd>{formatBytes(part.size_bytes)}</dd>
+          </div>
+          <div>
+            <dt>Duration</dt>
+            <dd>
+              {probed ? `${Math.round(part.duration_seconds ?? 0)}s` : <span className="faint">not probed yet</span>}
+            </dd>
+          </div>
+          <div>
+            <dt>Resolution</dt>
+            <dd>
+              {part.width && part.height ? (
+                `${part.width}×${part.height}`
+              ) : (
+                <span className="faint">not probed yet</span>
+              )}
+            </dd>
+          </div>
+          <div>
+            <dt>Uploaded</dt>
+            <dd>{formatTime(part.created_at)}</dd>
+          </div>
+          <div>
+            <dt>Storage key</dt>
+            <dd className="mono truncate">{part.storage_key || "—"}</dd>
+          </div>
+          <div>
+            <dt>Hook length</dt>
+            <dd>{part.hook.length} chars</dd>
+          </div>
+          <div className="parts__details-wide">
+            <dt>Jobs</dt>
+            <dd>
+              {part.jobs.length === 0 ? (
+                <span className="faint">Not queued on any platform yet.</span>
+              ) : (
+                <ul className="parts__jobs">
+                  {part.jobs.map((job) => (
+                    <li key={job.id}>
+                      <Badge tone={tone(job.state)}>{job.platform}</Badge>
+                      <span className="faint">{STATE_HELP[job.state]}</span>
+                      {job.last_error && <span className="parts__joberr">{job.last_error}</span>}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </dd>
+          </div>
+        </dl>
+        {!probed && (
+          <p className="parts__details-note faint">
+            Duration and resolution are read by ffmpeg during the first transcode, which happens
+            when this episode is first published. Until then only the byte size is known.
+          </p>
+        )}
       </td>
     </tr>
   );

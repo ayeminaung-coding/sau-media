@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { errorMessage } from "../api/http";
 import { putToStorage } from "../api/upload";
-import type { PublishSeriesBody } from "../api/client";
+import type { GenerateHooksBody, PublishSeriesBody } from "../api/client";
 import type { CaptionPreview, PublishResult, Series, SeriesInput } from "../api/types";
 import { parsePart } from "../domain/series";
 import { useApi } from "./useApi";
@@ -39,7 +39,7 @@ export interface SeriesState {
   setHook: (ref: string, partId: string, hook: string) => Promise<void>;
   removePart: (ref: string, partId: string) => Promise<void>;
 
-  generate: (ref: string, overwrite: boolean) => Promise<void>;
+  generate: (ref: string, body: GenerateHooksBody) => Promise<void>;
   publish: (ref: string, body: PublishSeriesBody) => Promise<PublishResult | null>;
 
   previews: CaptionPreview[] | null;
@@ -208,11 +208,13 @@ export function useSeries(): SeriesState {
   );
 
   const generate = useCallback(
-    async (ref: string, overwrite: boolean) => {
-      const result = await act(() => client.generateHooks(ref, { overwrite }));
+    async (ref: string, body: GenerateHooksBody) => {
+      const result = await act(() => client.generateHooks(ref, body));
       if (result) {
+        const scope = body.parts?.length === 1 ? `part ${body.parts[0]}` : "the series";
         setNotice(
-          `${result.provider} drafted ${result.parts_updated} hook(s). Read them before publishing.`,
+          `${result.provider} drafted ${result.parts_updated} hook(s) for ${scope}. ` +
+            "Read them before publishing.",
         );
         reload();
       }

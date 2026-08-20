@@ -93,7 +93,11 @@ def _to_response(session: Session, series: Series) -> SeriesResponse:
             part_index=part.part_index,
             hook=part.hook,
             source_filename=part.source_filename,
+            size_bytes=part.asset.size_bytes if part.asset else 0,
+            storage_key=part.asset.storage_key if part.asset else "",
             duration_seconds=part.asset.duration_seconds if part.asset else None,
+            width=part.asset.width if part.asset else None,
+            height=part.asset.height if part.asset else None,
             jobs=[JobResponse.model_validate(j) for j in jobs_by_asset.get(part.asset_id, [])],
             created_at=part.created_at,
         )
@@ -251,7 +255,11 @@ def register_part(
         part_index=part.part_index,
         hook=part.hook,
         source_filename=part.source_filename,
+        size_bytes=asset.size_bytes,
+        storage_key=asset.storage_key,
         duration_seconds=asset.duration_seconds,
+        width=asset.width,
+        height=asset.height,
         jobs=[],
         created_at=part.created_at,
     )
@@ -341,15 +349,30 @@ def generate_series_hooks(
     if not parts:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="series has no parts yet")
 
+    wanted = set(body.parts) if body.parts else None
+
+    def targeted(part: SeriesPart) -> bool:
+        """Whether this episode is one the model is being asked to write."""
+        if wanted is not None and part.part_index not in wanted:
+            return False
+        return body.overwrite or not part.hook.strip()
+
+    to_write = [part for part in parts if targeted(part)]
+    if not to_write:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="every requested episode already has a hook; use overwrite to redraft",
+        )
+
+    # Every episode goes into the prompt, not just the targeted ones. Settled
+    # hooks are shown as fixed, so redrafting one part in the middle produces a
+    # line that follows on from its neighbours instead of contradicting them.
     briefs = [
         PartBrief(
             index=part.part_index,
             label=part.source_filename,
             duration_seconds=part.asset.duration_seconds if part.asset else None,
-            # Settled hooks are shown to the model as fixed unless the operator
-            # asked to overwrite, so a re-run extends the arc instead of
-            # rewriting lines that were already approved.
-            hook="" if body.overwrite else part.hook,
+            hook="" if targeted(part) else part.hook,
         )
         for part in parts
     ]
@@ -368,9 +391,9 @@ def generate_series_hooks(
         raise HTTPException(status.HTTP_502_BAD_GATEWAY, detail=str(exc)) from exc
 
     updated = 0
-    for part in parts:
+    for part in to_write:
         hook = hooks.get(part.part_index)
-        if hook and (body.overwrite or not part.hook.strip()):
+        if hook:
             part.hook = hook
             updated += 1
 

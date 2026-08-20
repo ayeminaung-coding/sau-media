@@ -36,11 +36,11 @@ export function SeriesForm({ series, busy, onSave }: SeriesFormProps) {
     <div className="sform">
       <div className="sform__grid">
         <TextField
-          label="Chinese title"
-          value={draft.title_zh ?? ""}
+          label="Title"
+          value={draft.title_local ?? ""}
           max={255}
-          onChange={(value) => set({ title_zh: value })}
-          hint="Renders as {series_zh}."
+          onChange={(value) => set({ title_local: value })}
+          hint="As it reads in the caption. Renders as {series}."
         />
         <TextField
           label="English title"
@@ -59,6 +59,24 @@ export function SeriesForm({ series, busy, onSave }: SeriesFormProps) {
         rows={4}
         onChange={(value) => set({ synopsis: value })}
         hint="Never published. This is the context the hook generator is given — the better it is, the better the drafted hooks."
+      />
+
+      <TextField
+        label="Caption language"
+        value={draft.language ?? ""}
+        max={64}
+        onChange={(value) => set({ language: value })}
+        hint="What the hooks are drafted in — the audience's language, which is usually not the animation's."
+      />
+
+      <TextField
+        label="House style — one real caption"
+        value={draft.style_example ?? ""}
+        max={4000}
+        multiline
+        rows={5}
+        onChange={(value) => set({ style_example: value })}
+        hint="Paste one caption you have already written, hook paragraph and all. The model is shown it as the voice to match — this does more for the output than any other field here."
       />
 
       <TextField

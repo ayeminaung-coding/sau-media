@@ -64,7 +64,7 @@ export function SeriesView({ series, slotSummary }: SeriesViewProps) {
   return (
     <>
       <Card
-        title={selected.title_zh || selected.title_en || selected.slug}
+        title={selected.title_local || selected.title_en || selected.slug}
         description={describeSeries(selected)}
         aside={
           <div className="sview__pick">
@@ -76,7 +76,7 @@ export function SeriesView({ series, slotSummary }: SeriesViewProps) {
             >
               {series.list.map((row) => (
                 <option key={row.id} value={row.id}>
-                  {row.title_zh || row.title_en || row.slug}
+                  {row.title_local || row.title_en || row.slug}
                 </option>
               ))}
             </select>
@@ -119,14 +119,14 @@ export function SeriesView({ series, slotSummary }: SeriesViewProps) {
               <div className="sview__buttons">
                 <Button
                   loading={series.busy}
-                  onClick={() => void series.generate(selected.id, false)}
+                  onClick={() => void series.generate(selected.id, { overwrite: false })}
                 >
                   Draft missing hooks
                 </Button>
                 <Button
                   variant="ghost"
                   loading={series.busy}
-                  onClick={() => void series.generate(selected.id, true)}
+                  onClick={() => void series.generate(selected.id, { overwrite: true })}
                 >
                   Redraft all
                 </Button>
@@ -140,6 +140,9 @@ export function SeriesView({ series, slotSummary }: SeriesViewProps) {
               onHookChange={(partId, hook) => void series.setHook(selected.id, partId, hook)}
               onPreview={(partId) => void series.showPreview(selected.id, partId)}
               onRemove={(partId) => void series.removePart(selected.id, partId)}
+              onDraft={(partIndex) =>
+                void series.generate(selected.id, { parts: [partIndex], overwrite: true })
+              }
             />
 
             {series.previews && (
@@ -235,7 +238,7 @@ interface NewSeriesCardProps {
 
 function NewSeriesCard({ series, cancellable, onCancel, onCreated }: NewSeriesCardProps) {
   const [slug, setSlug] = useState("");
-  const [titleZh, setTitleZh] = useState("");
+  const [title, setTitle] = useState("");
 
   // The slug is the handle a human types into a URL, so it is constrained to
   // what the API accepts rather than being rejected after the fact.
@@ -266,11 +269,11 @@ function NewSeriesCard({ series, cancellable, onCancel, onCreated }: NewSeriesCa
           hint={cleaned ? `Will be saved as ${cleaned}` : "Lowercase, no spaces. Used in the URL."}
         />
         <TextField
-          label="Chinese title"
-          value={titleZh}
+          label="Title"
+          value={title}
           max={255}
-          onChange={setTitleZh}
-          hint="The rest of the caption material can be filled in afterwards."
+          onChange={setTitle}
+          hint="Leave it empty and the first episode's filename fills it in — part1_movieName.mp4 already carries it."
         />
         <div className="sview__buttons">
           <Button
@@ -279,7 +282,7 @@ function NewSeriesCard({ series, cancellable, onCancel, onCreated }: NewSeriesCa
             disabled={!cleaned}
             onClick={() => {
               void series
-                .create({ slug: cleaned, title_zh: titleZh })
+                .create({ slug: cleaned, title_local: title })
                 .then((created) => created && onCreated());
             }}
           >

@@ -107,6 +107,8 @@ convenience, not capability.
 | [Series](docs/SERIES.md) | serialised uploads: episode ordering, caption templates, the hook generator, and the posting slots |
 | [Development Guide](docs/DEVELOPMENT.md) | setup, endpoints, end-to-end example, layout |
 | [n8n Integration](docs/N8N_INTEGRATION.md) | wiring the workflow |
+| [Deployment](docs/DEPLOYMENT.md) | free and near-free hosting options, and why most free tiers do not fit |
+| [Heroku Plan](docs/HEROKU_PLAN.md) | running the whole pipeline inside the $13/month student credit |
 | [Console](console/README.md) | the operator UI: layout, configuration, deploying |
 | [CLAUDE.md](CLAUDE.md) | conventions and invariants for AI agents |
 

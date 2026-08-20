@@ -165,7 +165,14 @@ class SeriesPartResponse(BaseModel):
     part_index: int
     hook: str
     source_filename: str
+    #: Bytes in object storage. Known as soon as the part is registered.
+    size_bytes: int = 0
+    storage_key: str = ""
+    #: Filled by the first transcode, which is the first time anything reads
+    #: the file. Null on a part that has never been published.
     duration_seconds: float | None = None
+    width: int | None = None
+    height: int | None = None
     #: State of this part's publish jobs, if it has any yet.
     jobs: list[JobResponse] = Field(default_factory=list)
     created_at: datetime
@@ -213,6 +220,10 @@ class GenerateHooksRequest(BaseModel):
     #: False leaves hooks that already have text alone and shows them to the
     #: model as settled, so a re-run extends the arc rather than rewriting it.
     overwrite: bool = False
+    #: Draft only these episodes. Every other episode is still described in the
+    #: prompt, with its settled hook, so redrafting one part keeps the arc
+    #: rather than producing a line that contradicts its neighbours.
+    parts: list[int] | None = None
 
 
 class GenerateHooksResponse(BaseModel):
