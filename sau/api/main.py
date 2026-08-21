@@ -212,6 +212,28 @@ def unschedule_asset(asset_id: str, session: Session = Depends(get_session)) -> 
             session.delete(job)
 
 
+@router.get("/jobs", response_model=list[JobResponse])
+def list_jobs(
+    state: JobState | None = None,
+    limit: int = 50,
+    session: Session = Depends(get_session),
+) -> list[PublishJob]:
+    """Every job, most recently touched first.
+
+    The console's Jobs view needs this because a release it did not initiate --
+    the n8n tick, another tab, a retry from somewhere else -- is otherwise
+    invisible to it: a job can only be read by its own id or by its asset, and
+    the console knows neither until it publishes something itself.
+
+    Ordered by `updated_at` rather than `created_at` so a job that just changed
+    state sorts to the top, which is what a live view is watching for.
+    """
+    query = select(PublishJob).order_by(PublishJob.updated_at.desc()).limit(limit)
+    if state is not None:
+        query = query.where(PublishJob.state == state)
+    return list(session.execute(query).scalars())
+
+
 @router.get("/jobs/{job_id}", response_model=JobResponse)
 def get_job(job_id: str, session: Session = Depends(get_session)) -> PublishJob:
     return _load_job(session, job_id)

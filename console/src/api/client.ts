@@ -61,6 +61,8 @@ export interface SauClient {
   registerAsset(storageKey: string): Promise<Asset>;
   publish(assetId: string, targets: PublishTarget[], schedule: boolean): Promise<PublishResult>;
   listAssetJobs(assetId: string, signal?: AbortSignal): Promise<Job[]>;
+  /** Every job, most recently touched first — regardless of who queued it. */
+  listJobs(limit?: number, signal?: AbortSignal): Promise<Job[]>;
   retryJob(jobId: string): Promise<Job>;
   listBacklog(limit?: number, signal?: AbortSignal): Promise<BacklogEntry[]>;
   releaseAsset(assetId: string): Promise<PublishResult>;
@@ -105,6 +107,8 @@ export function createClient(base: string): SauClient {
 
     listAssetJobs: (assetId, signal) =>
       request<Job[]>(base, `/assets/${assetId}/jobs`, { signal }),
+
+    listJobs: (limit = 50, signal) => request<Job[]>(base, `/jobs?limit=${limit}`, { signal }),
 
     // Retrying one leg never touches its siblings — jobs are independent.
     retryJob: (jobId) => request<Job>(base, `/jobs/${jobId}/retry`, { method: "POST" }),

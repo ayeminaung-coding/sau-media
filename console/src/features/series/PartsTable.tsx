@@ -3,7 +3,7 @@ import { Badge } from "../../components/Badge";
 import { Button } from "../../components/Button";
 import { EmptyState } from "../../components/EmptyState";
 import { STATE_HELP, tone } from "../../domain/jobs";
-import { byPart, isQueued } from "../../domain/series";
+import { byPart, failedJobs, isLive, isQueued } from "../../domain/series";
 import { formatBytes, formatTime } from "../../lib/format";
 import type { Series, SeriesPart } from "../../api/types";
 import type { PartUpload } from "../../hooks/useSeries";
@@ -20,6 +20,8 @@ interface PartsTableProps {
   onRemove: (partId: string) => void;
   /** Redraft one episode's hook, by episode number. */
   onDraft: (partIndex: number) => void;
+  /** Re-queue this episode's failed jobs. */
+  onRetry: (part: SeriesPart) => void;
 }
 
 /**
@@ -37,6 +39,7 @@ export function PartsTable({
   onPreview,
   onRemove,
   onDraft,
+  onRetry,
 }: PartsTableProps) {
   const parts = byPart(series.parts);
   const active = uploads.filter((upload) => upload.status !== "done");
@@ -98,6 +101,7 @@ export function PartsTable({
                   onPreview={onPreview}
                   onRemove={onRemove}
                   onDraft={onDraft}
+                  onRetry={onRetry}
                 />
               ))}
             </tbody>
@@ -115,9 +119,18 @@ interface PartRowProps {
   onPreview: (partId: string) => void;
   onRemove: (partId: string) => void;
   onDraft: (partIndex: number) => void;
+  onRetry: (part: SeriesPart) => void;
 }
 
-function PartRow({ part, busy, onHookChange, onPreview, onRemove, onDraft }: PartRowProps) {
+function PartRow({
+  part,
+  busy,
+  onHookChange,
+  onPreview,
+  onRemove,
+  onDraft,
+  onRetry,
+}: PartRowProps) {
   // Kept locally while it is being typed, and pushed on blur: saving every
   // keystroke would be one request per character.
   const [draft, setDraft] = useState(part.hook);
@@ -125,6 +138,8 @@ function PartRow({ part, busy, onHookChange, onPreview, onRemove, onDraft }: Par
   useEffect(() => setDraft(part.hook), [part.hook]);
 
   const queued = isQueued(part);
+  const live = isLive(part);
+  const failed = failedJobs(part);
   const state = part.jobs[0]?.state;
 
   return (
@@ -164,6 +179,16 @@ function PartRow({ part, busy, onHookChange, onPreview, onRemove, onDraft }: Par
           >
             Draft
           </Button>
+          {failed.length > 0 && (
+            <Button
+              size="sm"
+              loading={busy}
+              title={`Re-queue ${failed.length} failed job(s). This publishes now rather than waiting for a slot.`}
+              onClick={() => onRetry(part)}
+            >
+              Retry
+            </Button>
+          )}
           <Button size="sm" variant="ghost" onClick={() => onPreview(part.id)}>
             Preview
           </Button>
@@ -178,8 +203,14 @@ function PartRow({ part, busy, onHookChange, onPreview, onRemove, onDraft }: Par
           <Button
             size="sm"
             variant="danger"
-            disabled={busy || queued}
-            title={queued ? "This episode already has jobs." : undefined}
+            disabled={busy || live}
+            title={
+              live
+                ? "This episode has jobs that have not failed."
+                : failed.length > 0
+                  ? "Every job failed — removing this lets the file be re-uploaded."
+                  : undefined
+            }
             onClick={() => onRemove(part.id)}
           >
             Remove

@@ -21,8 +21,8 @@ export function JobsPanel({ jobs, onRetry }: JobsPanelProps) {
   if (jobs.length === 0) {
     return (
       <EmptyState
-        title="Nothing published from this browser session yet."
-        hint="Jobs published elsewhere keep running — this panel only follows the last asset queued here."
+        title="No jobs yet."
+        hint="Publishing an asset, or a slot releasing one from the backlog, puts it here."
       />
     );
   }

@@ -37,6 +37,10 @@ MAX_CHUNKS = 1000
 #: TikTok rejects titles longer than this.
 MAX_TITLE_CHARS = 2200
 
+#: The only privacy level an unaudited app may post at. Always present in
+#: `privacy_level_options`, which is what makes it a usable fallback.
+SELF_ONLY = "SELF_ONLY"
+
 _STATUS_MAP = {
     "PROCESSING_UPLOAD": JobState.PROCESSING,
     "PROCESSING_DOWNLOAD": JobState.PROCESSING,
@@ -122,9 +126,19 @@ class TikTokPublisher(Publisher):
         set is read from the creator first and the request is clamped to it.
         """
         creator = client.query_creator_info()
-        allowed = creator.get("privacy_level_options") or ["SELF_ONLY"]
+        allowed = creator.get("privacy_level_options") or [SELF_ONLY]
 
-        privacy = request.privacy if request.privacy in allowed else allowed[0]
+        # Falling back to allowed[0] picks whatever TikTok happens to list first.
+        # For an unaudited app that is FOLLOWER_OF_CREATOR, which is not private,
+        # so init still rejects it with
+        # `unaudited_client_can_only_post_to_private_accounts`. SELF_ONLY is the
+        # one level the audit gate always accepts, so it is the safe fallback.
+        if request.privacy in allowed:
+            privacy = request.privacy
+        elif SELF_ONLY in allowed:
+            privacy = SELF_ONLY
+        else:
+            privacy = allowed[0]
         if privacy != request.privacy:
             log.warning(
                 "tiktok.privacy.clamped",
@@ -132,9 +146,11 @@ class TikTokPublisher(Publisher):
             )
 
         return {
-            # TikTok has one text field, shown as the post caption. A title
-            # is used when given; otherwise the caption fills that slot.
-            "title": (request.title or request.caption)[:MAX_TITLE_CHARS],
+            # TikTok has one text field. It is named `title` in the API but is
+            # displayed as the post caption, so it takes the caption: the title
+            # renders only the header line, and preferring it would drop the
+            # hook and the hashtag block from the post entirely.
+            "title": (request.caption or request.title)[:MAX_TITLE_CHARS],
             "privacy_level": privacy,
             "disable_duet": False,
             "disable_comment": False,

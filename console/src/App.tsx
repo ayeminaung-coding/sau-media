@@ -7,6 +7,7 @@ import { describeSlots } from "./domain/schedule";
 import { useBacklog } from "./hooks/useBacklog";
 import { useComposer } from "./hooks/useComposer";
 import { useJobRun } from "./hooks/useJobRun";
+import { useLiveJobs } from "./hooks/useLiveJobs";
 import { useNav } from "./hooks/useNav";
 import { usePublishFlow } from "./hooks/usePublishFlow";
 import { useSchedule } from "./hooks/useSchedule";
@@ -43,6 +44,7 @@ export function App() {
   const composer = useComposer();
   const flow = usePublishFlow();
   const run = useJobRun();
+  const live = useLiveJobs(nav.view === "jobs");
   const backlog = useBacklog();
   const schedule = useSchedule();
   const series = useSeries();
@@ -179,12 +181,17 @@ export function App() {
           {nav.view === "jobs" && (
             <Card
               title="Jobs"
-              description="Live state of the last asset queued here. Polled until every leg settles."
+              description="Every job in the system, newest first — including releases this browser never queued. Refreshed every 5s."
               aside={
-                run.assetId ? <span className="mono faint">asset {run.assetId.slice(0, 8)}</span> : null
+                live.loading && live.jobs.length === 0 ? (
+                  <span className="mono faint">loading…</span>
+                ) : (
+                  <span className="mono faint">{live.jobs.length} job(s)</span>
+                )
               }
             >
-              <JobsPanel jobs={run.jobs} onRetry={run.retry} />
+              {live.error && <p className="sview__error">{live.error}</p>}
+              <JobsPanel jobs={live.jobs} onRetry={live.retry} />
             </Card>
           )}
 

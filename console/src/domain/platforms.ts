@@ -28,9 +28,9 @@ export const PLATFORMS: Record<Platform, PlatformSpec> = {
   tiktok: {
     id: "tiktok",
     name: "TikTok",
-    summary: "One text field — title falls back to caption",
+    summary: "One text field — the caption; title is ignored",
     note:
-      "TikTok has a single text field. If Title is set it is used; otherwise the Caption fills that slot. " +
+      "TikTok has a single text field, and the Caption fills it. Anything typed as a Title is dropped. " +
       "Until the app passes audit every post is forced to SELF_ONLY regardless of what is chosen here.",
     titleMax: 150,
     captionMax: 2200,

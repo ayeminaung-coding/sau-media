@@ -10,6 +10,7 @@ import type { SeriesState } from "../../hooks/useSeries";
 import { CaptionPreviewList } from "./CaptionPreviewList";
 import { NamePreview, PartDropZone } from "./PartDropZone";
 import { PartsTable } from "./PartsTable";
+import { SeriesIndex } from "./SeriesIndex";
 import { SeriesForm } from "./SeriesForm";
 import { TargetPicker } from "../targets/TargetPicker";
 import "./SeriesView.css";
@@ -39,6 +40,10 @@ export function SeriesView({ series, slotSummary }: SeriesViewProps) {
   const [tab, setTab] = useState<Tab>("episodes");
   const [staged, setStaged] = useState<File[]>([]);
   const [creating, setCreating] = useState(false);
+  // The index is the landing screen. `useSeries` still keeps a selection alive
+  // so a reload never points at nothing, so which screen is showing is a
+  // separate question from which series is selected.
+  const [browsing, setBrowsing] = useState(true);
 
   const selected = series.selected;
 
@@ -50,13 +55,30 @@ export function SeriesView({ series, slotSummary }: SeriesViewProps) {
     );
   }
 
-  if (!selected || creating) {
+  if (creating) {
     return (
       <NewSeriesCard
         series={series}
-        cancellable={Boolean(selected)}
+        cancellable={series.list.length > 0}
         onCancel={() => setCreating(false)}
-        onCreated={() => setCreating(false)}
+        onCreated={() => {
+          setCreating(false);
+          setBrowsing(false);
+        }}
+      />
+    );
+  }
+
+  if (browsing || !selected) {
+    return (
+      <SeriesIndex
+        series={series}
+        onNew={() => setCreating(true)}
+        onOpen={(id) => {
+          series.select(id);
+          setTab("episodes");
+          setBrowsing(false);
+        }}
       />
     );
   }
@@ -68,18 +90,9 @@ export function SeriesView({ series, slotSummary }: SeriesViewProps) {
         description={describeSeries(selected)}
         aside={
           <div className="sview__pick">
-            <select
-              className="sview__select"
-              aria-label="Series"
-              value={selected.id}
-              onChange={(event) => series.select(event.target.value)}
-            >
-              {series.list.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {row.title_local || row.title_en || row.slug}
-                </option>
-              ))}
-            </select>
+            <Button size="sm" variant="ghost" onClick={() => setBrowsing(true)}>
+              All series
+            </Button>
             <Button size="sm" onClick={() => setCreating(true)}>
               New
             </Button>
@@ -143,6 +156,7 @@ export function SeriesView({ series, slotSummary }: SeriesViewProps) {
               onDraft={(partIndex) =>
                 void series.generate(selected.id, { parts: [partIndex], overwrite: true })
               }
+              onRetry={(part) => void series.retryPart(part)}
             />
 
             {series.previews && (

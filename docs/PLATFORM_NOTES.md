@@ -63,6 +63,13 @@ There is **no documented resume-at-offset endpoint** for `FILE_UPLOAD`. A
 failed transfer restarts from a fresh `init`. Acceptable because TikTok
 renditions are capped at 10 minutes and are therefore small.
 
+### One text field
+
+`post_info.title` is the only text TikTok accepts, and it is displayed as the
+post caption. It therefore carries the **caption**, not the title: for a series
+the title template renders just the header line, so preferring it would publish
+the header alone and silently drop the hook and the hashtag block.
+
 ### Audit gate
 
 Before the app passes TikTok's audit, every post is forced to `SELF_ONLY`

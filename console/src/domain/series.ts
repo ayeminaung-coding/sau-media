@@ -13,7 +13,7 @@
  * cannot drift from what publishes.
  */
 
-import type { Series, SeriesPart } from "../api/types";
+import type { Job, Series, SeriesPart } from "../api/types";
 
 /** `part1_name`, `Part 02 - name`, `ep3_name`, `episode_4_name`. */
 const PART_RE = /^\s*(?:part|ep|episode)[\s_\-.]*(\d{1,4})(?:[\s_\-.]+(.*))?$/i;
@@ -66,6 +66,24 @@ export function byPart<T extends { part_index: number }>(parts: readonly T[]): T
 /** A part is publishable until it has jobs; after that it is spoken for. */
 export function isQueued(part: SeriesPart): boolean {
   return part.jobs.length > 0;
+}
+
+/** The jobs that gave up on this episode, one per platform that failed. */
+export function failedJobs(part: SeriesPart): Job[] {
+  return part.jobs.filter((job) => job.state === "failed");
+}
+
+/**
+ * Whether anything is still riding on this episode.
+ *
+ * A part whose every job has failed holds nothing: the file was rejected and
+ * no platform is going to act on it again unless it is retried. That is the
+ * one case where replacing the episode is the right move, so it is not the
+ * same question as `isQueued`, which governs whether publishing it again
+ * would duplicate work.
+ */
+export function isLive(part: SeriesPart): boolean {
+  return part.jobs.some((job) => job.state !== "failed");
 }
 
 export function pendingParts(series: Series): SeriesPart[] {

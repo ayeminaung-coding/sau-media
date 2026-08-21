@@ -1,0 +1,74 @@
+.sindex {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 22rem), 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-4);
+  list-style: none;
+  padding: 0;
+}
+
+.sindex__box {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-sunken);
+}
+
+/* The whole body is the hit target: picking a series is the common action, and
+   a box that is only clickable on its title reads as decoration. */
+.sindex__open {
+  display: grid;
+  gap: var(--space-1);
+  padding: var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sindex__open:hover {
+  background: color-mix(in srgb, var(--accent) 8%, transparent);
+}
+
+.sindex__open:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.sindex__name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+}
+
+.sindex__slug {
+  font-size: var(--text-sm);
+}
+
+.sindex__meta {
+  font-size: var(--text-md);
+}
+
+.sindex__gap {
+  margin-top: var(--space-1);
+  font-size: var(--text-sm);
+  color: var(--warn);
+}
+
+.sindex__actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  border-top: 1px solid var(--line);
+}
+
+.sindex__warn {
+  margin-right: auto;
+  font-size: var(--text-sm);
+  color: var(--err);
+}

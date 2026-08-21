@@ -2,8 +2,14 @@ import { useCallback, useEffect, useState } from "react";
 import { errorMessage } from "../api/http";
 import { putToStorage } from "../api/upload";
 import type { GenerateHooksBody, PublishSeriesBody } from "../api/client";
-import type { CaptionPreview, PublishResult, Series, SeriesInput } from "../api/types";
-import { parsePart } from "../domain/series";
+import type {
+  CaptionPreview,
+  PublishResult,
+  Series,
+  SeriesInput,
+  SeriesPart,
+} from "../api/types";
+import { failedJobs, parsePart } from "../domain/series";
 import { useApi } from "./useApi";
 
 /** One file's journey from the operator's disk into a series. */
@@ -38,6 +44,8 @@ export interface SeriesState {
   addFiles: (ref: string, files: File[]) => Promise<void>;
   setHook: (ref: string, partId: string, hook: string) => Promise<void>;
   removePart: (ref: string, partId: string) => Promise<void>;
+  /** Re-queue every failed job on one episode, leaving other episodes alone. */
+  retryPart: (part: SeriesPart) => Promise<void>;
 
   generate: (ref: string, body: GenerateHooksBody) => Promise<void>;
   publish: (ref: string, body: PublishSeriesBody) => Promise<PublishResult | null>;
@@ -207,6 +215,22 @@ export function useSeries(): SeriesState {
     [act, client, reload],
   );
 
+  const retryPart = useCallback(
+    async (part: SeriesPart) => {
+      const failed = failedJobs(part);
+      if (failed.length === 0) return;
+      // One call per failed platform: a job is per platform, and retrying one
+      // must not disturb a sibling that published.
+      const done = await act(async () => {
+        for (const job of failed) await client.retryJob(job.id);
+        return failed.length;
+      });
+      if (done) setNotice(`Re-queued ${done} job(s) for part ${part.part_index}.`);
+      reload();
+    },
+    [act, client, reload],
+  );
+
   const generate = useCallback(
     async (ref: string, body: GenerateHooksBody) => {
       const result = await act(() => client.generateHooks(ref, body));
@@ -270,6 +294,7 @@ export function useSeries(): SeriesState {
     addFiles,
     setHook,
     removePart,
+    retryPart,
     generate,
     publish,
     previews,
