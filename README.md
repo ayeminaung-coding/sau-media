@@ -109,6 +109,7 @@ convenience, not capability.
 | [n8n Integration](docs/N8N_INTEGRATION.md) | wiring the workflow |
 | [Deployment](docs/DEPLOYMENT.md) | free and near-free hosting options, and why most free tiers do not fit |
 | [DigitalOcean Plan](docs/DIGITALOCEAN_PLAN.md) | step-by-step Droplet deployment, hardening, verification, and operations |
+| [DigitalOcean Architecture](docs/ARCHITECTURE_DIGITALOCEAN.md) | 1 GB Droplet layout with external services, prebuilt images, and systemd scheduling |
 | [Heroku Plan](docs/HEROKU_PLAN.md) | running the whole pipeline inside the $13/month student credit |
 | [Console](console/README.md) | the operator UI: layout, configuration, deploying |
 | [CLAUDE.md](CLAUDE.md) | conventions and invariants for AI agents |
