@@ -11,3 +11,4 @@ __pycache__/
 media/
 *.egg-info/
 build/
+cloudflare-pages.zip
