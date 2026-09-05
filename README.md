@@ -38,7 +38,7 @@ one leg never re-uploads the other.
 | Queue | Redis + RQ | one queue per platform, independently scalable |
 | API | FastAPI | typed, async, self-documenting |
 | State | Postgres | job history, resume offsets, rotating tokens |
-| Media | ffmpeg | per-platform renditions (9:16 vertical, 16:9 feed) |
+| Media | Cloudflare R2 source object | upload a platform-compatible video once and reuse it |
 | Orchestration | n8n | triggers, approvals, notifications, the schedule heartbeat |
 
 n8n supplies the heartbeat and the notifications; the posting slots and the
@@ -108,6 +108,7 @@ convenience, not capability.
 | [Development Guide](docs/DEVELOPMENT.md) | setup, endpoints, end-to-end example, layout |
 | [n8n Integration](docs/N8N_INTEGRATION.md) | wiring the workflow |
 | [Deployment](docs/DEPLOYMENT.md) | free and near-free hosting options, and why most free tiers do not fit |
+| [DigitalOcean Plan](docs/DIGITALOCEAN_PLAN.md) | step-by-step Droplet deployment, hardening, verification, and operations |
 | [Heroku Plan](docs/HEROKU_PLAN.md) | running the whole pipeline inside the $13/month student credit |
 | [Console](console/README.md) | the operator UI: layout, configuration, deploying |
 | [CLAUDE.md](CLAUDE.md) | conventions and invariants for AI agents |

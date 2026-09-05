@@ -114,7 +114,7 @@ class Asset(Base):
 
 
 class Rendition(Base):
-    """A transcoded copy of an asset, shaped for one platform's constraints."""
+    """A platform-specific registration of an asset object."""
 
     __tablename__ = "renditions"
     __table_args__ = (UniqueConstraint("asset_id", "platform", name="uq_rendition_asset_platform"),)

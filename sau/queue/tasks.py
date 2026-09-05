@@ -2,7 +2,7 @@
 
 Work is split at the two points where control leaves this process:
 
-``run_publish_job``   transcode, transfer bytes, start the platform publish.
+``run_publish_job``   transfer bytes, start the platform publish.
 ``poll_publish_job``  ask the platform whether encoding has finished.
 
 Each database transaction here is deliberately short. A publish can take ten
@@ -78,7 +78,7 @@ def _claim(job_id: str) -> _JobContext | None:
             _mark_failed(job, f"exhausted {MAX_ATTEMPTS} attempts")
             return None
 
-        job.state = JobState.TRANSCODING
+        job.state = JobState.UPLOADING
         return _JobContext(
             job_id=job.id,
             platform=job.platform,
@@ -142,7 +142,7 @@ def _record_started(job_id: str, external_id: str, state: JobState, url: str | N
 
 
 def run_publish_job(job_id: str) -> None:
-    """Transcode, transfer, and start the platform-side publish."""
+    """Transfer the source object and start the platform-side publish."""
     ctx = _claim(job_id)
     if ctx is None:
         return
