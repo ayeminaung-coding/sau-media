@@ -38,6 +38,21 @@ class PlatformError(SauError):
         )
 
 
+class PreparationError(SauError):
+    """Media preparation failed before platform transfer."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        code: str = "media_preparation_failed",
+        retryable: bool = True,
+    ) -> None:
+        super().__init__(message)
+        self.code = code
+        self.retryable = retryable
+
+
 class AuthError(PlatformError):
     """Credentials are missing, expired beyond refresh, or lack a scope."""
 

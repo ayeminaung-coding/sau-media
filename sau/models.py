@@ -93,6 +93,14 @@ class JobState(enum.StrEnum):
 TERMINAL_STATES = frozenset({JobState.PUBLISHED, JobState.FAILED})
 
 
+class RenditionState(enum.StrEnum):
+    PENDING = "pending"
+    PROCESSING = "processing"
+    READY = "ready"
+    FAILED = "failed"
+    LEGACY_SOURCE = "legacy_source"
+
+
 class Asset(Base):
     """A source video uploaded to object storage, before any platform work."""
 
@@ -114,16 +122,36 @@ class Asset(Base):
 
 
 class Rendition(Base):
-    """A platform-specific registration of an asset object."""
+    """A platform-specific media preparation result."""
 
     __tablename__ = "renditions"
-    __table_args__ = (UniqueConstraint("asset_id", "platform", name="uq_rendition_asset_platform"),)
+    __table_args__ = (
+        UniqueConstraint(
+            "asset_id", "platform", "profile_identity", name="uq_rendition_profile"
+        ),
+    )
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid)
     asset_id: Mapped[str] = mapped_column(ForeignKey("assets.id", ondelete="CASCADE"), index=True)
     platform: Mapped[Platform] = mapped_column(Enum(Platform, native_enum=False))
     storage_key: Mapped[str] = mapped_column(String(512))
     size_bytes: Mapped[int] = mapped_column(BigInteger)
+    state: Mapped[RenditionState] = mapped_column(
+        Enum(RenditionState, native_enum=False), default=RenditionState.PENDING
+    )
+    profile_identity: Mapped[str] = mapped_column(String(128), default="legacy")
+    error: Mapped[str | None] = mapped_column(Text, default=None)
+    claim_token: Mapped[str | None] = mapped_column(String(36), default=None)
+    lease_expires_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), default=None
+    )
+    started_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+    duration_seconds: Mapped[float | None] = mapped_column(Float, default=None)
+    width: Mapped[int | None] = mapped_column(Integer, default=None)
+    height: Mapped[int | None] = mapped_column(Integer, default=None)
+    video_codec: Mapped[str | None] = mapped_column(String(32), default=None)
+    audio_codec: Mapped[str | None] = mapped_column(String(32), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
     asset: Mapped[Asset] = relationship(back_populates="renditions")
