@@ -111,12 +111,20 @@ convenience, not capability.
 | [DigitalOcean Plan](docs/DIGITALOCEAN_PLAN.md) | step-by-step Droplet deployment, hardening, verification, and operations |
 | [Heroku Plan](docs/HEROKU_PLAN.md) | running the whole pipeline inside the $13/month student credit |
 | [Console](console/README.md) | the operator UI: layout, configuration, deploying |
+| [Open Platform Vision](docs/OPEN_PLATFORM_VISION.md) | proposed open, multi-workspace content operations product |
+| [Target Architecture](docs/TARGET_ARCHITECTURE.md) | target modules, LLM gateway, plugins, and reliability design |
+| [Use Cases](docs/USE_CASES.md) | actors, use-case diagram, and acceptance criteria |
+| [Database Design](docs/DATABASE_DESIGN.md) | proposed multi-tenant schema and migration path |
+| [Agent PM Workflow](docs/AGENT_PM_WORKFLOW.md) | coding-agent roles, task lifecycle, and handoffs |
+| [Agent Backlog](docs/AGENT_BACKLOG.md) | prioritized implementation tasks and readiness |
 | [CLAUDE.md](CLAUDE.md) | conventions and invariants for AI agents |
 
 ## Status
 
-The pipeline is complete and internally consistent. The platform request
-shapes follow Meta's and TikTok's published docs but have **not been run
-against the live APIs** here — work through the checklist in
+The current fan-out publishing pipeline is implemented as a foundation, but
+production readiness still requires authentication, migrations, reliable queue
+dispatch, recovery, and a resolution of the transcode/documentation mismatch.
+The platform request shapes follow Meta's and TikTok's published docs but have
+**not been run against the live APIs** here. Work through the checklist in
 [Platform Notes](docs/PLATFORM_NOTES.md#verification-checklist) before go-live,
 and start app review first, since that is the real critical path.
